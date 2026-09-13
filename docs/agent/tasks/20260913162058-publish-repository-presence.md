@@ -2,10 +2,10 @@
 schema_version = 1
 id = "TASK-20260913162058-publish-repository-presence"
 kind = "task"
-status = "active"
+status = "completed"
 task_level = "high_risk"
 created_at = "2026-09-13T16:20:58.703048+00:00"
-updated_at = "2026-09-13T16:20:58.703048+00:00"
+updated_at = "2026-09-13T16:23:03.072244+00:00"
 parent = "PLAN-20260913155549-repository-presence-and-landing"
 repositories = ["root"]
 protected_areas = ["release"]
@@ -43,4 +43,7 @@ Git task branch, commits, pull request, and this task's completion evidence.
 
 ## Completion evidence
 
-Pending.
+Completed. Human approved publishing. Pushed commit `10bdeb7` to task branch `task/repository-presence-and-landing` and opened Pull Request #4:
+https://github.com/vannt-dev/governed-agent-sdlc/pull/4
+
+The pull request remains open awaiting human merge decision; no direct merge to `main` was performed.
