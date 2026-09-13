@@ -45,7 +45,6 @@ Git task branch, commit, pull request, and this task's completion evidence.
 
 ## Completion evidence
 
-Pending. No Git remote is configured and the active GitHub CLI authentication is invalid, so push
-and pull-request creation cannot proceed until the human configures the external destination and
-reauthenticates.
-
+In progress. Human approved the empty-repository bootstrap. Commit `512b399` was pushed and the
+initial default branch was renamed to `main` through the GitHub API. Branch
+`task/publish-evidence` records the remaining lifecycle evidence; pull-request URL is pending.
