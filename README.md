@@ -1,4 +1,16 @@
+<div align="center">
+
 # Governed Agent SDLC
+
+**Ship with agents. Keep humans in control.**
+
+[![Validate](https://github.com/vannt-dev/governed-agent-sdlc/actions/workflows/validate.yml/badge.svg)](https://github.com/vannt-dev/governed-agent-sdlc/actions/workflows/validate.yml)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-0b7771)](https://www.python.org/)
+[![MIT License](https://img.shields.io/badge/License-MIT-f06f4f.svg)](LICENSE)
+
+[Project website](https://vannt-dev.github.io/governed-agent-sdlc/) · [Architecture](docs/architecture.md) · [Workflow](docs/workflow.md) · [Adoption guide](docs/adoption.md)
+
+</div>
 
 Governed Agent SDLC is a cross-platform toolkit for AI coding agents. It separates a
 tool-neutral workflow kernel from project profiles and vendor adapters, so the same approval,
@@ -6,6 +18,10 @@ security, artifact, review, and QA rules can be applied to different technology 
 
 The project is intentionally **human-in-the-loop**. It helps agents work predictably; it does not
 grant an AI permission to approve, merge, release, or retrieve credentials.
+
+> **MVP status:** the core workflow, Claude Code adapter, deterministic safety hooks, and
+> cross-platform validation are available. Package publication and additional vendor adapters are
+> intentionally future work.
 
 ## What is included
 
