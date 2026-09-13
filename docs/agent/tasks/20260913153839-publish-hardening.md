@@ -2,10 +2,10 @@
 schema_version = 1
 id = "TASK-20260913153839-publish-hardening"
 kind = "task"
-status = "active"
+status = "completed"
 task_level = "high_risk"
 created_at = "2026-09-13T15:38:39.7190836Z"
-updated_at = "2026-09-13T15:38:39.7190836Z"
+updated_at = "2026-09-13T15:42:59.483694+00:00"
 parent = "PLAN-20260913150236-hardening-and-validation"
 repositories = ["root"]
 protected_areas = ["release"]
@@ -45,6 +45,8 @@ Git task branch, commit, pull request, and this task's completion evidence.
 
 ## Completion evidence
 
-In progress. Human approved the empty-repository bootstrap. Commit `512b399` was pushed and the
+Completed. Human approved the empty-repository bootstrap. Commit `512b399` was pushed and the
 initial default branch was renamed to `main` through the GitHub API. Branch
-`task/publish-evidence` records the remaining lifecycle evidence; pull-request URL is pending.
+`task/publish-evidence` records the remaining lifecycle evidence in
+https://github.com/vannt-dev/governed-agent-sdlc/pull/3. The pull request remains open for human
+merge; no release was created.
