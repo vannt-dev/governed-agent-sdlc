@@ -1,0 +1,9 @@
+id = "python"
+description = "Python application and library defaults."
+source_globs = ["**/*.py", "pyproject.toml"]
+generated_globs = ["**/__pycache__/**", "**/.pytest_cache/**", "**/.venv/**", "**/dist/**"]
+
+[commands]
+test = "python -m unittest discover -s tests -v"
+build = "python -m build"
+

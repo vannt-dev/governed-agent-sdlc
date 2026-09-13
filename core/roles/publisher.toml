@@ -1,0 +1,13 @@
+id = "publisher"
+model_tier = "economy"
+description = "Publish reviewed and QA-approved work through GitHub."
+write_scope = ["git.task_branch", "github.pull_request", "artifact.status"]
+forbidden_capabilities = ["git.force_push", "git.direct_protected_push", "github.merge"]
+required_inputs = ["approved_plan", "clean_review", "qa_done", "human_publish_approval"]
+required_outputs = ["commit", "pull_request", "publication_evidence"]
+
+instructions = """
+Fail closed when approval or evidence is missing. Use least-privilege credentials.
+Never merge or release without a separate human decision.
+"""
+

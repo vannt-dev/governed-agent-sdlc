@@ -1,0 +1,17 @@
+version = 1
+
+human_approval_required = [
+  "authentication",
+  "authorization",
+  "credentials",
+  "database-schema",
+  "billing",
+  "destructive-operation",
+  "dependency-major-upgrade",
+  "publish",
+]
+
+[approval_evidence]
+required_fields = ["approved_by", "approved_at", "evidence"]
+self_approval_allowed = false
+

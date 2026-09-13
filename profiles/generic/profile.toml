@@ -1,0 +1,11 @@
+id = "generic"
+description = "Language-neutral defaults for an existing repository."
+source_globs = ["**/*"]
+generated_globs = ["dist/**", "build/**", ".cache/**"]
+
+[commands]
+format = ""
+lint = ""
+test = ""
+build = ""
+

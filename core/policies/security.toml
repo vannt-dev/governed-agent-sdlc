@@ -1,0 +1,18 @@
+version = 1
+default_behavior = "fail_closed"
+
+[credentials]
+agent_may_read_secret_store = false
+agent_may_print_secrets = false
+prefer_github_app = true
+
+[git]
+force_push = false
+direct_push_to_protected_branch = false
+merge_requires_human = true
+
+[github_actions]
+default_token_permission = "contents:read"
+pin_external_actions_to_commit_sha = true
+allow_secrets_on_untrusted_pull_requests = false
+

@@ -1,0 +1,10 @@
+id = "dotnet"
+description = "ASP.NET Core and .NET library defaults."
+source_globs = ["**/*.cs", "**/*.csproj", "**/*.sln"]
+generated_globs = ["**/bin/**", "**/obj/**"]
+
+[commands]
+format = "dotnet format --verify-no-changes"
+test = "dotnet test"
+build = "dotnet build --no-restore"
+

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/governed-agent-sdlc/project.schema.json",
+  "title": "Governed Agent SDLC project manifest",
+  "type": "object",
+  "required": ["version", "project", "repositories", "workflow"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "protected_areas": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "project": {
+      "type": "object",
+      "required": ["name", "topology"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "topology": { "enum": ["single-repo", "monorepo", "polyrepo"] }
+      }
+    },
+    "repositories": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "path", "profiles"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "path": { "type": "string", "minLength": 1 },
+          "profiles": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "workflow": {
+      "type": "object",
+      "required": ["require_spec", "require_plan", "require_review", "require_qa"],
+      "additionalProperties": false,
+      "properties": {
+        "require_spec": { "type": "boolean" },
+        "require_plan": { "type": "boolean" },
+        "require_review": { "type": "boolean" },
+        "require_qa": { "type": "boolean" }
+      }
+    },
+    "commands": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  }
+}

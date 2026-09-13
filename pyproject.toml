@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "governed-agent-sdlc"
+version = "0.1.0"
+description = "A governed, cross-platform SDLC toolkit for AI coding agents."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Governed Agent SDLC Contributors" }]
+dependencies = []
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+
+[project.scripts]
+agentkit = "agentkit.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentkit"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"core" = "agentkit/resources/core"
+"hooks" = "agentkit/resources/hooks"
+"profiles" = "agentkit/resources/profiles"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

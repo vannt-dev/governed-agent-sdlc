@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/governed-agent-sdlc/artifact.schema.json",
+  "title": "Governed Agent SDLC artifact metadata",
+  "type": "object",
+  "required": ["schema_version", "id", "kind", "status", "task_level"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": 1 },
+    "id": { "type": "string", "minLength": 1 },
+    "kind": { "enum": ["spec", "plan", "task", "review", "qa"] },
+    "status": {
+      "enum": ["draft", "awaiting_approval", "approved", "active", "completed", "superseded", "archived"]
+    },
+    "task_level": { "enum": ["small", "medium", "high_risk"] },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "parent": { "type": "string", "minLength": 1 },
+    "supersedes": { "type": "string", "minLength": 1 },
+    "repositories": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "protected_areas": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "approval": {
+      "type": "object",
+      "required": ["approved_by", "approved_at", "evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "approved_by": { "type": "string", "minLength": 1 },
+        "approved_at": { "type": "string", "format": "date-time" },
+        "evidence": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": { "enum": ["approved", "active", "completed", "superseded"] }
+        },
+        "required": ["status"]
+      },
+      "then": { "required": ["approval"] }
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+id = "reviewer"
+model_tier = "reasoning"
+description = "Review a completed task independently and report findings."
+write_scope = ["docs/agent/reviews/**", "review_task.completion_evidence"]
+forbidden_capabilities = ["source.write", "git.commit", "git.push", "github.merge"]
+required_inputs = ["completed_task", "implementation_diff"]
+required_outputs = ["review_report"]
+
+instructions = """
+Prioritize correctness, security, contract drift, regression risk, and missing tests.
+Report findings by severity with file and line evidence. Do not repair the source.
+"""
+

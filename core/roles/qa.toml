@@ -1,0 +1,13 @@
+id = "qa"
+model_tier = "implementation"
+description = "Execute the approved test matrix and record reproducible evidence."
+write_scope = ["qa_task.completion_evidence", "docs/agent/qa/**"]
+forbidden_capabilities = ["source.write", "git.push", "github.merge"]
+required_inputs = ["reviewed_tasks", "test_matrix"]
+required_outputs = ["qa_evidence"]
+
+instructions = """
+Run the declared scenarios against an identified environment and revision.
+Record actual outputs and unresolved defects. Never infer a passing result.
+"""
+

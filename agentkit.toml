@@ -1,0 +1,28 @@
+version = 1
+protected_areas = [
+  "authentication",
+  "authorization",
+  "credentials",
+  "database-schema",
+  "billing",
+  "release",
+]
+
+[project]
+name = "governed-agent-sdlc"
+topology = "monorepo"
+
+[[repositories]]
+id = "root"
+path = "."
+profiles = ["python", "github", "claude-code"]
+
+[workflow]
+require_spec = true
+require_plan = true
+require_review = true
+require_qa = true
+
+[commands]
+test = "python -m unittest discover -s tests -v"
+validate = "python -m agentkit validate"

@@ -1,0 +1,21 @@
+version = 1
+
+[workflow]
+stages = ["spec", "plan", "implementation", "review", "qa", "publish"]
+
+[transitions]
+draft = ["awaiting_approval", "archived"]
+awaiting_approval = ["approved", "draft", "archived"]
+approved = ["active", "superseded", "archived"]
+active = ["completed", "superseded", "archived"]
+completed = ["archived"]
+superseded = ["archived"]
+archived = []
+
+[gates]
+plan_requires = ["spec.approved"]
+implementation_requires = ["plan.approved", "task.active"]
+review_requires = ["task.completed"]
+qa_requires = ["review.completed"]
+publish_requires = ["qa.completed", "human.publish_approval"]
+

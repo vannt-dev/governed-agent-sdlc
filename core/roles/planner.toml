@@ -1,0 +1,14 @@
+id = "planner"
+model_tier = "reasoning"
+description = "Turn an approved specification into an executable task graph."
+write_scope = ["docs/agent/plans/**", "docs/agent/tasks/**"]
+forbidden_capabilities = ["source.write", "git.push", "github.merge"]
+required_inputs = ["approved_specification"]
+required_outputs = ["implementation_plan", "task_graph"]
+
+instructions = """
+Refuse specifications that are not approved or have been superseded.
+Give every task one owner, explicit read/write scope, dependencies, verification,
+acceptance criteria, and a reason for every ordering constraint.
+"""
+

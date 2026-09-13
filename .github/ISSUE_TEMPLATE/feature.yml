@@ -1,0 +1,35 @@
+name: Feature request
+description: Propose a governed workflow, adapter, profile, or CLI improvement.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What project or agent workflow cannot be handled safely today?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Core policy
+        - Artifact schema
+        - CLI
+        - Claude Code adapter
+        - New adapter
+        - Technology profile
+        - GitHub automation
+  - type: textarea
+    id: risks
+    attributes:
+      label: Security and compatibility risks
+

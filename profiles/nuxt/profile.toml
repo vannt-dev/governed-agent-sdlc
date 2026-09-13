@@ -1,0 +1,11 @@
+id = "nuxt"
+description = "Nuxt, Vue, and TypeScript defaults."
+source_globs = ["**/*.vue", "**/*.ts", "**/*.tsx"]
+generated_globs = ["**/node_modules/**", "**/.nuxt/**", "**/.output/**", "**/dist/**"]
+
+[commands]
+lint = "pnpm lint"
+typecheck = "pnpm typecheck"
+test = "pnpm test"
+build = "pnpm build"
+

@@ -1,0 +1,23 @@
+version = 1
+protected_areas = ["authentication", "database-schema", "billing"]
+
+[project]
+name = "example-commerce"
+topology = "polyrepo"
+
+[[repositories]]
+id = "backend"
+path = "repositories/backend"
+profiles = ["dotnet"]
+
+[[repositories]]
+id = "frontend"
+path = "repositories/frontend"
+profiles = ["nuxt"]
+
+[workflow]
+require_spec = true
+require_plan = true
+require_review = true
+require_qa = true
+

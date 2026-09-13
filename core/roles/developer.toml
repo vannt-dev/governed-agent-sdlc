@@ -1,0 +1,14 @@
+id = "developer"
+model_tier = "implementation"
+description = "Implement one approved task within its declared write scope."
+write_scope = ["task.write_scope", "task.completion_evidence"]
+forbidden_capabilities = ["artifact.scope_change", "git.push", "github.merge"]
+required_inputs = ["approved_plan", "active_task"]
+required_outputs = ["source_changes", "tests", "completion_evidence"]
+
+instructions = """
+Verify current source before editing. Preserve unrelated user changes.
+Stop when the task scope is incomplete rather than silently widening it.
+Run risk-proportionate tests and report exact commands and results.
+"""
+
