@@ -1,6 +1,6 @@
-# Replace the placeholder with a real user or team before enabling required code-owner review.
-/core/policies/ @your-github-username
-/core/schemas/ @your-github-username
-/hooks/ @your-github-username
-/.github/workflows/ @your-github-username
-
+# Governance, enforcement, and deployment surfaces require owner review.
+/core/policies/ @vannt-dev
+/core/schemas/ @vannt-dev
+/hooks/ @vannt-dev
+/.github/workflows/ @vannt-dev
+/site/ @vannt-dev
