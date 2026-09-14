@@ -30,6 +30,10 @@ class ReleaseWorkflowTests(unittest.TestCase):
                 r"@[0-9a-f]{40}$",
                 f"Action {action} must be pinned to a 40-character SHA",
             )
+        self.assertIn(
+            "pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33",
+            self.content,
+        )
 
     def test_least_privilege_permissions(self) -> None:
         self.assertIn("permissions:\n  contents: read", self.content)
