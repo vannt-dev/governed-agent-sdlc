@@ -10,6 +10,8 @@ from playwright.sync_api import Browser, Page, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "site"
+REPOSITORY_URL = "https://github.com/vannt-dev/governed-agent-sdlc"
+REPOSITORY_FILE_PREFIX = f"{REPOSITORY_URL}/blob/main/"
 
 
 class SiteBrowserChecks(unittest.TestCase):
@@ -37,6 +39,20 @@ class SiteBrowserChecks(unittest.TestCase):
         page = self.browser.new_page(viewport={"width": width, "height": height})
         page.goto(self.base_url, wait_until="networkidle")
         return page
+
+    def _assert_external_link(self, href: str) -> None:
+        if href == REPOSITORY_URL:
+            return
+        self.assertTrue(
+            href.startswith(REPOSITORY_FILE_PREFIX),
+            f"External link must target the canonical repository: {href}",
+        )
+        target = (ROOT / href.removeprefix(REPOSITORY_FILE_PREFIX)).resolve()
+        try:
+            target.relative_to(ROOT)
+        except ValueError as exc:
+            self.fail(f"Repository link escapes the project root: {href} ({exc})")
+        self.assertTrue(target.is_file(), f"Repository link target does not exist: {href}")
 
     def test_layout_has_no_horizontal_overflow(self) -> None:
         for width in (320, 375, 1440):
@@ -76,8 +92,7 @@ class SiteBrowserChecks(unittest.TestCase):
                         fragment = href.split("#", 1)[1]
                         self.assertEqual(1, page.locator(f"#{fragment}").count())
                     elif href.startswith("https://"):
-                        response = page.request.get(href, timeout=30_000)
-                        self.assertLess(response.status, 400)
+                        self._assert_external_link(href)
         finally:
             page.close()
 
