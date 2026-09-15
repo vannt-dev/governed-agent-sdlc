@@ -7,8 +7,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-
 ARTIFACT_KINDS = ("spec", "plan", "task", "review", "qa")
+ARTIFACT_DIRECTORIES = {
+    "spec": "specs",
+    "plan": "plans",
+    "task": "tasks",
+    "review": "reviews",
+    "qa": "qa",
+}
 ALLOWED_TRANSITIONS = {
     "draft": {"awaiting_approval", "archived"},
     "awaiting_approval": {"approved", "draft", "archived"},
@@ -134,7 +140,7 @@ def create_artifact(root: Path, kind: str, slug: str) -> Path:
         raise ArtifactError("Artifact slug cannot be empty")
     stamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
     artifact_id = f"{kind.upper()}-{stamp}-{safe_slug}"
-    folder = root / "docs" / "agent" / f"{kind}s"
+    folder = root / "docs" / "agent" / ARTIFACT_DIRECTORIES[kind]
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / f"{stamp}-{safe_slug}.md"
     if path.exists():
@@ -149,8 +155,9 @@ def create_artifact(root: Path, kind: str, slug: str) -> Path:
         "repositories": [],
         "protected_areas": [],
     }
+    heading = "QA" if kind == "qa" else kind.title()
     body = (
-        f"\n# {kind.title()}: {slug}\n\n"
+        f"\n# {heading}: {slug}\n\n"
         "## Goal\n\n"
         "## Confirmed facts\n\n"
         "## Assumptions\n\n"

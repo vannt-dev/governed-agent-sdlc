@@ -2,9 +2,9 @@
 from __future__ import annotations
 
 import re
+from typing import Any
 
 from common import deny, input_error, read_hook_input, tool_input, tool_input_error
-
 
 FORCE_PUSH = re.compile(r"\bgit\b[^\n]*(?:push\s+[^\n]*(?:--force(?:-with-lease)?|-f\b))", re.I)
 FORCE_REFSPEC = re.compile(r"\bgit\b[^\r\n;&|]*\bpush\b[^\r\n;&|]*(?:^|\s)\+[^\s]+", re.I)
@@ -16,7 +16,7 @@ DIRECT_PROTECTED = re.compile(
 DESTRUCTIVE = re.compile(r"\bgit\s+(?:reset\s+--hard|clean\s+-[^\s]*f|checkout\s+--\s)", re.I)
 
 
-def evaluate(data: dict) -> str | None:
+def evaluate(data: dict[str, Any]) -> str | None:
     malformed = input_error(data)
     if malformed:
         return malformed

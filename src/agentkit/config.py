@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-
 MANIFEST_NAMES = ("agentkit.toml", ".agent/project.toml")
 SUPPORTED_MANIFEST_VERSION = 1
 SUPPORTED_TOPOLOGIES = {"single-repo", "monorepo", "polyrepo"}
@@ -50,7 +49,9 @@ def _reject_unknown_fields(value: dict[str, Any], allowed: set[str], context: st
 
 
 def _string_list(value: Any, field: str, *, required: bool = False) -> tuple[str, ...]:
-    if not isinstance(value, list) or any(not isinstance(item, str) or not item.strip() for item in value):
+    if not isinstance(value, list) or any(
+        not isinstance(item, str) or not item.strip() for item in value
+    ):
         raise ConfigError(f"{field} must be an array of non-empty strings")
     normalized = tuple(item.strip() for item in value)
     if required and not normalized:
@@ -71,7 +72,11 @@ def _available_profiles(project_root: Path) -> set[str]:
         if folder.is_dir():
             available.update(path.parent.name for path in folder.glob("*/profile.toml"))
 
-    capability_roots = [project_root, Path(__file__).resolve().parents[2]]
+    capability_roots = [
+        project_root,
+        Path(__file__).resolve().parents[2],
+        Path(__file__).resolve().parent / "resources",
+    ]
     for root in capability_roots:
         adapters = root / "adapters"
         if adapters.is_dir():
@@ -88,9 +93,7 @@ def find_project_root(start: Path | None = None) -> Path:
     for candidate in (current, *current.parents):
         if any((candidate / name).is_file() for name in MANIFEST_NAMES):
             return candidate
-    raise ConfigError(
-        "No agentkit.toml or .agent/project.toml found. Run `agentkit init`."
-    )
+    raise ConfigError("No agentkit.toml or .agent/project.toml found. Run `agentkit init`.")
 
 
 def manifest_path(root: Path) -> Path:
@@ -158,13 +161,13 @@ def load_config(root: Path | None = None) -> ProjectConfig:
         if resolved in seen_paths:
             raise ConfigError(f"Duplicate repository path: {repo_path}")
         seen_paths.add(resolved)
-        profiles = _string_list(item.get("profiles"), f"repositories[{index}].profiles", required=True)
+        profiles = _string_list(
+            item.get("profiles"), f"repositories[{index}].profiles", required=True
+        )
         unknown_profiles = set(profiles) - known_profiles
         if unknown_profiles:
             raise ConfigError(f"Unknown profiles: {', '.join(sorted(unknown_profiles))}")
-        repositories.append(
-            Repository(repo_id, resolved, profiles)
-        )
+        repositories.append(Repository(repo_id, resolved, profiles))
 
     workflow = _require_table(raw, "workflow")
     _reject_unknown_fields(workflow, set(WORKFLOW_FLAGS), "[workflow]")
@@ -175,8 +178,7 @@ def load_config(root: Path | None = None) -> ProjectConfig:
     protected_areas = _string_list(raw.get("protected_areas", []), "protected_areas")
     commands = raw.get("commands", {})
     if not isinstance(commands, dict) or any(
-        not isinstance(key, str) or not isinstance(value, str)
-        for key, value in commands.items()
+        not isinstance(key, str) or not isinstance(value, str) for key, value in commands.items()
     ):
         raise ConfigError("[commands] values must be strings")
 

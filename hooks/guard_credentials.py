@@ -2,9 +2,9 @@
 from __future__ import annotations
 
 import re
+from typing import Any
 
 from common import deny, input_error, read_hook_input, tool_input, tool_input_error
-
 
 SECRET_PATH = re.compile(
     r"(?:^|[/\\])(?:\.env(?:\.[^/\\]+)?|\.git-credentials|\.netrc|id_rsa|id_ed25519|"
@@ -23,7 +23,7 @@ TOKEN_ECHO = re.compile(
 )
 
 
-def evaluate(data: dict) -> str | None:
+def evaluate(data: dict[str, Any]) -> str | None:
     malformed = input_error(data)
     if malformed:
         return malformed

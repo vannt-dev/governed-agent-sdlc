@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Any
 
 from common import deny, input_error, read_hook_input, tool_input, tool_input_error
-
 
 ROLE_PREFIXES = {
     "architect": ("docs/agent/specs/",),
@@ -16,7 +16,7 @@ ROLE_PREFIXES = {
 }
 
 
-def evaluate(data: dict) -> str | None:
+def evaluate(data: dict[str, Any]) -> str | None:
     malformed = input_error(data)
     if malformed:
         return malformed
