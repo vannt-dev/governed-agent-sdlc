@@ -42,8 +42,19 @@ class ReleaseWorkflowTests(unittest.TestCase):
 
     def test_build_and_release_commands(self) -> None:
         self.assertIn("python -m build", self.content)
+        self.assertIn("python -m twine check dist/*", self.content)
+        self.assertIn("build==1.6.1 hatchling==1.32.0 twine==7.0.0", self.content)
         self.assertIn("gh release create", self.content)
         self.assertIn("pypa/gh-action-pypi-publish@", self.content)
+
+    def test_release_is_derived_from_main_and_attested(self) -> None:
+        self.assertIn('git merge-base --is-ancestor "$tag_commit" origin/main', self.content)
+        self.assertIn(
+            "actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8",
+            self.content,
+        )
+        self.assertIn("attestations: write", self.content)
+        self.assertIn("already exists; refusing to rebuild different assets", self.content)
 
     def test_pypi_publish_is_isolated_from_release_creation(self) -> None:
         self.assertIn("publish-pypi:", self.content)
@@ -61,6 +72,8 @@ class ReleaseWorkflowTests(unittest.TestCase):
         self.assertIn('gh release download "$RELEASE_TAG"', self.content)
         self.assertIn("governed_agent_sdlc-${version}-py3-none-any.whl", self.content)
         self.assertIn("governed_agent_sdlc-${version}.tar.gz", self.content)
+        self.assertIn('gh attestation verify "$artifact"', self.content)
+        self.assertIn("attestations: read", self.content)
 
     def test_release_tag_is_validated_before_publication(self) -> None:
         self.assertIn("Invalid release tag", self.content)

@@ -1,14 +1,15 @@
 [build-system]
-requires = ["hatchling>=1.25"]
+requires = ["hatchling==1.32.0"]
 build-backend = "hatchling.build"
 
 [project]
 name = "governed-agent-sdlc"
-version = "0.1.0"
+version = "0.1.1"
 description = "A governed, cross-platform SDLC toolkit for AI coding agents."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "Governed Agent SDLC Contributors" }]
 dependencies = []
 classifiers = [
@@ -18,6 +19,25 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+]
+
+[project.urls]
+Homepage = "https://vannt-dev.github.io/governed-agent-sdlc/"
+Documentation = "https://vannt-dev.github.io/governed-agent-sdlc/"
+Repository = "https://github.com/vannt-dev/governed-agent-sdlc"
+Issues = "https://github.com/vannt-dev/governed-agent-sdlc/issues"
+Changelog = "https://github.com/vannt-dev/governed-agent-sdlc/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+dev = [
+  "build==1.6.1",
+  "coverage==7.16.1",
+  "hatchling==1.32.0",
+  "mypy==2.3.1",
+  "playwright==1.62.0",
+  "PyYAML==6.0.3",
+  "ruff==0.16.7",
+  "twine==7.0.0",
 ]
 
 [project.scripts]
@@ -30,6 +50,28 @@ packages = ["src/agentkit"]
 "core" = "agentkit/resources/core"
 "hooks" = "agentkit/resources/hooks"
 "profiles" = "agentkit/resources/profiles"
+"adapters" = "agentkit/resources/adapters"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src", "hooks"]
+
+[tool.coverage.run]
+branch = true
+source = ["agentkit"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+skip_covered = true

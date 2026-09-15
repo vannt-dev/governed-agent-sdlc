@@ -5,9 +5,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from agentkit.artifacts import ALLOWED_TRANSITIONS, ARTIFACT_KINDS, Artifact, ArtifactError, parse_artifact
+from agentkit.artifacts import (
+    ALLOWED_TRANSITIONS,
+    ARTIFACT_KINDS,
+    Artifact,
+    ArtifactError,
+    parse_artifact,
+)
 from agentkit.config import ConfigError, ProjectConfig, load_config
-
 
 TASK_LEVELS = {"small", "medium", "high_risk"}
 APPROVED_HISTORY_STATUSES = {"approved", "active", "completed", "superseded"}
@@ -60,13 +65,13 @@ def validate_project(root: Path | None = None) -> list[Finding]:
 def _validate_repositories(config: ProjectConfig) -> list[Finding]:
     findings: list[Finding] = []
     if not config.repositories:
-        findings.append(
-            Finding("warning", config.manifest_path, "No repositories are configured")
-        )
+        findings.append(Finding("warning", config.manifest_path, "No repositories are configured"))
     for repo in config.repositories:
         if not repo.path.exists():
             findings.append(
-                Finding("error", config.manifest_path, f"Repository path does not exist: {repo.path}")
+                Finding(
+                    "error", config.manifest_path, f"Repository path does not exist: {repo.path}"
+                )
             )
     return findings
 
@@ -97,29 +102,42 @@ def _validate_artifacts(config: ProjectConfig, artifacts: list[Artifact]) -> lis
         unknown_fields = set(artifact.metadata) - ARTIFACT_FIELDS
         if unknown_fields:
             findings.append(
-                Finding("error", artifact.path, f"Unknown metadata fields: {', '.join(sorted(unknown_fields))}")
+                Finding(
+                    "error",
+                    artifact.path,
+                    f"Unknown metadata fields: {', '.join(sorted(unknown_fields))}",
+                )
             )
         for key in ("schema_version", "id", "kind", "status", "task_level"):
             if artifact.metadata.get(key) in (None, ""):
                 findings.append(Finding("error", artifact.path, f"Missing required field: {key}"))
         if artifact.id in by_id:
-            findings.append(Finding("error", artifact.path, f"Duplicate artifact id: {artifact.id}"))
+            findings.append(
+                Finding("error", artifact.path, f"Duplicate artifact id: {artifact.id}")
+            )
         elif artifact.id:
             by_id[artifact.id] = artifact
         if artifact.kind not in ARTIFACT_KINDS:
             findings.append(Finding("error", artifact.path, f"Unknown kind: {artifact.kind}"))
         elif artifact.id and not artifact.id.startswith(f"{artifact.kind.upper()}-"):
-            findings.append(Finding("error", artifact.path, "Artifact id prefix does not match kind"))
+            findings.append(
+                Finding("error", artifact.path, "Artifact id prefix does not match kind")
+            )
         if artifact.status not in ALLOWED_TRANSITIONS:
             findings.append(Finding("error", artifact.path, f"Unknown status: {artifact.status}"))
-        if type(artifact.metadata.get("schema_version")) is not int or artifact.metadata["schema_version"] != 1:
+        if (
+            type(artifact.metadata.get("schema_version")) is not int
+            or artifact.metadata["schema_version"] != 1
+        ):
             findings.append(Finding("error", artifact.path, "schema_version must be 1"))
         if artifact.metadata.get("task_level") not in TASK_LEVELS:
             findings.append(Finding("error", artifact.path, "Unknown task_level"))
         for key in ("created_at", "updated_at"):
             value = artifact.metadata.get(key)
             if value not in (None, "") and not _valid_timestamp(value):
-                findings.append(Finding("error", artifact.path, f"{key} must be an ISO-8601 timestamp"))
+                findings.append(
+                    Finding("error", artifact.path, f"{key} must be an ISO-8601 timestamp")
+                )
 
         artifact_repos, error = _metadata_string_list(artifact.metadata, "repositories")
         if error:
@@ -127,7 +145,11 @@ def _validate_artifacts(config: ProjectConfig, artifacts: list[Artifact]) -> lis
         unknown_repos = set(artifact_repos) - repo_ids
         if unknown_repos:
             findings.append(
-                Finding("error", artifact.path, f"Unknown repositories: {', '.join(sorted(unknown_repos))}")
+                Finding(
+                    "error",
+                    artifact.path,
+                    f"Unknown repositories: {', '.join(sorted(unknown_repos))}",
+                )
             )
         artifact_areas, error = _metadata_string_list(artifact.metadata, "protected_areas")
         if error:
@@ -135,7 +157,11 @@ def _validate_artifacts(config: ProjectConfig, artifacts: list[Artifact]) -> lis
         unknown_areas = set(artifact_areas) - protected_areas
         if unknown_areas:
             findings.append(
-                Finding("error", artifact.path, f"Unknown protected areas: {', '.join(sorted(unknown_areas))}")
+                Finding(
+                    "error",
+                    artifact.path,
+                    f"Unknown protected areas: {', '.join(sorted(unknown_areas))}",
+                )
             )
 
         approval_value = artifact.metadata.get("approval")
@@ -147,27 +173,38 @@ def _validate_artifacts(config: ProjectConfig, artifacts: list[Artifact]) -> lis
             unexpected = set(approval) - {"approved_by", "approved_at", "evidence"}
             if unexpected:
                 findings.append(
-                    Finding("error", artifact.path, f"Unknown approval fields: {', '.join(sorted(unexpected))}")
+                    Finding(
+                        "error",
+                        artifact.path,
+                        f"Unknown approval fields: {', '.join(sorted(unexpected))}",
+                    )
                 )
-            missing = [
-                key
-                for key in ("approved_by", "approved_at", "evidence")
-                if not isinstance(approval.get(key), str) or not approval.get(key).strip()
-            ]
+            missing = []
+            for key in ("approved_by", "approved_at", "evidence"):
+                value = approval.get(key)
+                if not isinstance(value, str) or not value.strip():
+                    missing.append(key)
             if missing:
                 findings.append(
-                    Finding("error", artifact.path, f"Approved artifact lacks: {', '.join(missing)}")
+                    Finding(
+                        "error", artifact.path, f"Approved artifact lacks: {', '.join(missing)}"
+                    )
                 )
             elif not _valid_timestamp(approval["approved_at"]):
-                findings.append(Finding("error", artifact.path, "approval.approved_at must be an ISO-8601 timestamp"))
+                findings.append(
+                    Finding(
+                        "error", artifact.path, "approval.approved_at must be an ISO-8601 timestamp"
+                    )
+                )
 
     for artifact in artifacts:
         parent_value = artifact.metadata.get("parent", "")
         parent_id = parent_value if isinstance(parent_value, str) else ""
         rule = PARENT_RULES.get(artifact.kind)
-        parent_required = bool(rule and config.workflow.get(rule[2]))
-        if parent_required and not parent_id:
-            findings.append(Finding("error", artifact.path, f"{artifact.kind} requires a parent {rule[0]}"))
+        if rule is not None and config.workflow.get(rule[2]) and not parent_id:
+            findings.append(
+                Finding("error", artifact.path, f"{artifact.kind} requires a parent {rule[0]}")
+            )
         if parent_id:
             parent = by_id.get(parent_id)
             if not parent:
@@ -176,11 +213,19 @@ def _validate_artifacts(config: ProjectConfig, artifacts: list[Artifact]) -> lis
                 expected_kind, allowed_statuses, _ = rule
                 if parent.kind != expected_kind:
                     findings.append(
-                        Finding("error", artifact.path, f"{artifact.kind} parent must be {expected_kind}: {parent_id}")
+                        Finding(
+                            "error",
+                            artifact.path,
+                            f"{artifact.kind} parent must be {expected_kind}: {parent_id}",
+                        )
                     )
                 elif parent.status not in allowed_statuses:
                     findings.append(
-                        Finding("error", artifact.path, f"Parent gate is not satisfied: {parent_id} ({parent.status})")
+                        Finding(
+                            "error",
+                            artifact.path,
+                            f"Parent gate is not satisfied: {parent_id} ({parent.status})",
+                        )
                     )
         elif parent_value not in (None, ""):
             findings.append(Finding("error", artifact.path, "parent must be a string"))
@@ -193,16 +238,59 @@ def _validate_artifacts(config: ProjectConfig, artifacts: list[Artifact]) -> lis
                 continue
             old = by_id.get(supersedes)
             if not old:
-                findings.append(Finding("error", artifact.path, f"Superseded artifact not found: {supersedes}"))
+                findings.append(
+                    Finding("error", artifact.path, f"Superseded artifact not found: {supersedes}")
+                )
             elif old.kind != artifact.kind:
-                findings.append(Finding("error", artifact.path, f"Cannot supersede a different kind: {supersedes}"))
+                findings.append(
+                    Finding(
+                        "error", artifact.path, f"Cannot supersede a different kind: {supersedes}"
+                    )
+                )
             elif old.status not in {"superseded", "archived"}:
                 findings.append(
-                    Finding("error", artifact.path, f"Replaced artifact still appears active: {supersedes} ({old.status})")
+                    Finding(
+                        "error",
+                        artifact.path,
+                        f"Replaced artifact still appears active: {supersedes} ({old.status})",
+                    )
                 )
         elif supersedes_value not in (None, ""):
             findings.append(Finding("error", artifact.path, "supersedes must be a string"))
 
+    findings.extend(_reference_cycle_findings(artifacts, "parent"))
+    findings.extend(_reference_cycle_findings(artifacts, "supersedes"))
+    return findings
+
+
+def _reference_cycle_findings(artifacts: list[Artifact], field: str) -> list[Finding]:
+    by_id = {artifact.id: artifact for artifact in artifacts if artifact.id}
+    findings: list[Finding] = []
+    reported: set[frozenset[str]] = set()
+    for artifact in artifacts:
+        chain: list[str] = []
+        positions: dict[str, int] = {}
+        current = artifact
+        while current.id in by_id:
+            if current.id in positions:
+                cycle = chain[positions[current.id] :]
+                signature = frozenset(cycle)
+                if signature not in reported:
+                    reported.add(signature)
+                    findings.append(
+                        Finding(
+                            "error",
+                            current.path,
+                            f"{field} reference cycle: {' -> '.join((*cycle, current.id))}",
+                        )
+                    )
+                break
+            positions[current.id] = len(chain)
+            chain.append(current.id)
+            target = current.metadata.get(field)
+            if not isinstance(target, str) or target not in by_id:
+                break
+            current = by_id[target]
     return findings
 
 

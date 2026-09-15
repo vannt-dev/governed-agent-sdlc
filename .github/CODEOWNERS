@@ -2,5 +2,8 @@
 /core/policies/ @vannt-dev
 /core/schemas/ @vannt-dev
 /hooks/ @vannt-dev
+/adapters/ @vannt-dev
+/src/agentkit/ @vannt-dev
+/pyproject.toml @vannt-dev
 /.github/workflows/ @vannt-dev
 /site/ @vannt-dev

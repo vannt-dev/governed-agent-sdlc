@@ -4,7 +4,6 @@ import json
 import sys
 from typing import Any
 
-
 INPUT_ERROR_KEY = "_agentkit_input_error"
 
 

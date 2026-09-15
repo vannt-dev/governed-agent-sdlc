@@ -14,7 +14,8 @@ Project manifest + artifacts
 
 The core owns role authority, workflow transitions, approval policy, templates, and schemas.
 Profiles add stack knowledge without changing governance. Adapters translate the core into a tool's
-native format. Deterministic validators and hooks enforce the subset of policy that can be checked
+native format. Claude Code uses generated agent Markdown and hooks; Codex uses native layered
+`AGENTS.md` discovery plus project-scoped role configuration. Deterministic validators and hooks enforce the subset of policy that can be checked
 mechanically.
 
 Markdown remains readable to humans, while TOML frontmatter carries machine-checked identity,

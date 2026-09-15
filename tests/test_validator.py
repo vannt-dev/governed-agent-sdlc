@@ -7,8 +7,7 @@ from pathlib import Path
 from agentkit.artifacts import Artifact, create_artifact, parse_artifact, serialize_artifact
 from agentkit.validator import validate_project
 
-
-MANIFEST = '''version = 1
+MANIFEST = """version = 1
 [project]
 name = "fixture"
 topology = "single-repo"
@@ -21,7 +20,7 @@ require_spec = true
 require_plan = true
 require_review = true
 require_qa = true
-'''
+"""
 
 
 class ValidatorTests(unittest.TestCase):
@@ -46,7 +45,9 @@ class ValidatorTests(unittest.TestCase):
             artifact = parse_artifact(path)
             metadata = dict(artifact.metadata)
             metadata["repositories"] = ["missing"]
-            path.write_text(serialize_artifact(Artifact(path, metadata, artifact.body)), encoding="utf-8")
+            path.write_text(
+                serialize_artifact(Artifact(path, metadata, artifact.body)), encoding="utf-8"
+            )
             errors = [f.message for f in validate_project(root) if f.level == "error"]
             self.assertTrue(any("Unknown repositories" in message for message in errors))
 
@@ -115,7 +116,9 @@ class ValidatorTests(unittest.TestCase):
             root = Path(temp)
             (root / "agentkit.toml").write_text(MANIFEST, encoding="utf-8")
             path = create_artifact(root, "spec", "boolean version")
-            text = path.read_text(encoding="utf-8").replace("schema_version = 1", "schema_version = true")
+            text = path.read_text(encoding="utf-8").replace(
+                "schema_version = 1", "schema_version = true"
+            )
             path.write_text(text, encoding="utf-8")
             errors = [f.message for f in validate_project(root) if f.level == "error"]
             self.assertIn("schema_version must be 1", errors)
@@ -193,6 +196,31 @@ class ValidatorTests(unittest.TestCase):
             )
             errors = [f.message for f in validate_project(root) if f.level == "error"]
             self.assertIn("task parent must be plan: SPEC-one", errors)
+
+    def test_rejects_reference_cycles(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "agentkit.toml").write_text(MANIFEST, encoding="utf-8")
+            first_path = create_artifact(root, "spec", "first")
+            second_path = create_artifact(root, "spec", "second")
+            first = parse_artifact(first_path)
+            second = parse_artifact(second_path)
+            first_metadata = dict(first.metadata)
+            second_metadata = dict(second.metadata)
+            first_metadata["parent"] = second.id
+            second_metadata["parent"] = first.id
+            first_path.write_text(
+                serialize_artifact(Artifact(first_path, first_metadata, first.body)),
+                encoding="utf-8",
+            )
+            second_path.write_text(
+                serialize_artifact(Artifact(second_path, second_metadata, second.body)),
+                encoding="utf-8",
+            )
+            errors = [
+                finding.message for finding in validate_project(root) if finding.level == "error"
+            ]
+            self.assertTrue(any("parent reference cycle" in message for message in errors))
 
 
 if __name__ == "__main__":

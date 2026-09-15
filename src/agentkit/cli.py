@@ -1,15 +1,29 @@
 from __future__ import annotations
 
 import argparse
+import json
 import platform
 import shutil
 import sys
+import tomllib
 from pathlib import Path
+from typing import Any
 
 from agentkit import __version__
-from agentkit.artifacts import ArtifactError, create_artifact, parse_artifact, serialize_artifact, transition
-from agentkit.config import ConfigError, find_project_root
-from agentkit.generator import generate_claude, install_scaffold
+from agentkit.artifacts import (
+    ArtifactError,
+    create_artifact,
+    parse_artifact,
+    serialize_artifact,
+    transition,
+)
+from agentkit.config import (
+    MANIFEST_NAMES,
+    SUPPORTED_MANIFEST_VERSION,
+    ConfigError,
+    find_project_root,
+)
+from agentkit.generator import generate_claude, generate_codex, install_scaffold
 from agentkit.validator import validate_project
 
 
@@ -21,18 +35,30 @@ def build_parser() -> argparse.ArgumentParser:
     init = sub.add_parser("init", help="Initialize Governed Agent SDLC in a project")
     init.add_argument("path", nargs="?", default=".")
     init.add_argument("--name")
-    init.add_argument("--adapter", choices=("none", "claude-code"), default="claude-code")
+    init.add_argument("--adapter", choices=("none", "claude-code", "codex"), default="claude-code")
+    init.add_argument("--dry-run", action="store_true")
+    _add_format(init)
 
     validate = sub.add_parser("validate", help="Validate manifest and artifacts")
     validate.add_argument("path", nargs="?", default=".")
+    _add_format(validate)
 
     doctor = sub.add_parser("doctor", help="Check local prerequisites and configuration")
     doctor.add_argument("path", nargs="?", default=".")
+    _add_format(doctor)
 
     generate = sub.add_parser("generate", help="Generate an AI-tool adapter")
-    generate.add_argument("adapter", choices=("claude-code",))
+    generate.add_argument("adapter", choices=("claude-code", "codex"))
     generate.add_argument("path", nargs="?", default=".")
     generate.add_argument("--force", action="store_true")
+    generate.add_argument("--dry-run", action="store_true")
+    _add_format(generate)
+
+    migrate = sub.add_parser("migrate", help="Safely migrate a project manifest schema")
+    migrate.add_argument("path", nargs="?", default=".")
+    migrate.add_argument("--to-version", type=int, default=SUPPORTED_MANIFEST_VERSION)
+    migrate.add_argument("--dry-run", action="store_true")
+    _add_format(migrate)
 
     artifact = sub.add_parser("artifact", help="Create or transition workflow artifacts")
     artifact_sub = artifact.add_subparsers(dest="artifact_command", required=True)
@@ -40,6 +66,19 @@ def build_parser() -> argparse.ArgumentParser:
     new.add_argument("kind", choices=("spec", "plan", "task", "review", "qa"))
     new.add_argument("slug")
     new.add_argument("--path", default=".")
+
+    listing = artifact_sub.add_parser("list")
+    listing.add_argument("--path", default=".")
+    _add_format(listing)
+
+    show = artifact_sub.add_parser("show")
+    show.add_argument("artifact_path")
+    show.add_argument("--path", default=".")
+    _add_format(show)
+
+    graph = artifact_sub.add_parser("graph")
+    graph.add_argument("--path", default=".")
+    _add_format(graph)
 
     move = artifact_sub.add_parser("transition")
     move.add_argument("artifact_path")
@@ -55,18 +94,32 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "init":
             return _init(args)
         if args.command == "validate":
-            return _validate(Path(args.path))
+            return _validate(Path(args.path), args.output_format)
         if args.command == "doctor":
-            return _doctor(Path(args.path))
+            return _doctor(Path(args.path), args.output_format)
         if args.command == "generate":
             root = find_project_root(Path(args.path))
-            generated = generate_claude(root, force=args.force)
-            print(f"Generated {len(generated)} Claude Code file(s).")
+            generator = generate_claude if args.adapter == "claude-code" else generate_codex
+            generated = generator(root, force=args.force, dry_run=args.dry_run)
+            _emit(
+                {"adapter": args.adapter, "dry_run": args.dry_run, "paths": _paths(generated)},
+                args.output_format,
+                f"{'Would generate' if args.dry_run else 'Generated'} {len(generated)} "
+                f"{args.adapter} file(s).",
+            )
             return 0
+        if args.command == "migrate":
+            return _migrate(Path(args.path), args.to_version, args.dry_run, args.output_format)
         if args.command == "artifact" and args.artifact_command == "new":
             root = find_project_root(Path(args.path))
             print(create_artifact(root, args.kind, args.slug))
             return 0
+        if args.command == "artifact" and args.artifact_command == "list":
+            return _artifact_list(Path(args.path), args.output_format)
+        if args.command == "artifact" and args.artifact_command == "show":
+            return _artifact_show(Path(args.path), args.artifact_path, args.output_format)
+        if args.command == "artifact" and args.artifact_command == "graph":
+            return _artifact_graph(Path(args.path), args.output_format)
         if args.command == "artifact" and args.artifact_command == "transition":
             root = find_project_root()
             path = _project_artifact_path(root, args.artifact_path)
@@ -81,13 +134,17 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{artifact.status} -> {updated.status}: {path}")
             return 0
     except (ArtifactError, ConfigError, OSError) as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
+        if getattr(args, "output_format", "text") == "json":
+            print(json.dumps({"ok": False, "error": str(exc)}, sort_keys=True), file=sys.stderr)
+        else:
+            print(f"ERROR: {exc}", file=sys.stderr)
         return 2
     return 1
 
 
 def _project_artifact_path(root: Path, value: str) -> Path:
-    path = Path(value).resolve()
+    candidate = Path(value)
+    path = (candidate if candidate.is_absolute() else root / candidate).resolve()
     artifact_root = (root / "docs" / "agent").resolve()
     try:
         path.relative_to(artifact_root)
@@ -100,29 +157,183 @@ def _project_artifact_path(root: Path, value: str) -> Path:
 
 def _init(args: argparse.Namespace) -> int:
     destination = Path(args.path).resolve()
-    destination.mkdir(parents=True, exist_ok=True)
+    if not args.dry_run:
+        destination.mkdir(parents=True, exist_ok=True)
     name = args.name or destination.name
-    copied = install_scaffold(destination, name=name)
+    copied = install_scaffold(destination, name=name, dry_run=args.dry_run)
     if args.adapter == "claude-code":
-        copied.extend(generate_claude(destination))
-    print(f"Initialized {name} at {destination} ({len(copied)} item(s) created).")
+        copied.extend(generate_claude(destination, dry_run=args.dry_run))
+    elif args.adapter == "codex":
+        copied.extend(generate_codex(destination, dry_run=args.dry_run))
+    _emit(
+        {
+            "name": name,
+            "destination": str(destination),
+            "dry_run": args.dry_run,
+            "paths": _paths(copied),
+        },
+        args.output_format,
+        f"{'Would initialize' if args.dry_run else 'Initialized'} {name} at {destination} "
+        f"({len(copied)} item(s) {'planned' if args.dry_run else 'created'}).",
+    )
     return 0
 
 
-def _validate(path: Path) -> int:
+def _validate(path: Path, output_format: str = "text") -> int:
     findings = validate_project(path.resolve())
-    for finding in findings:
-        print(finding)
     errors = sum(item.level == "error" for item in findings)
     warnings = sum(item.level == "warning" for item in findings)
-    print(f"Validation complete: {errors} error(s), {warnings} warning(s).")
+    if output_format == "json":
+        print(
+            json.dumps(
+                {
+                    "ok": errors == 0,
+                    "errors": errors,
+                    "warnings": warnings,
+                    "findings": [
+                        {"level": item.level, "path": str(item.path), "message": item.message}
+                        for item in findings
+                    ],
+                },
+                sort_keys=True,
+            )
+        )
+    else:
+        for finding in findings:
+            print(finding)
+        print(f"Validation complete: {errors} error(s), {warnings} warning(s).")
     return 1 if errors else 0
 
 
-def _doctor(path: Path) -> int:
-    print(f"Governed Agent SDLC: {__version__}")
-    print(f"Python: {platform.python_version()} ({sys.executable})")
-    print(f"Platform: {platform.platform()}")
-    print(f"Git: {shutil.which('git') or 'NOT FOUND'}")
-    print(f"uv: {shutil.which('uv') or 'NOT FOUND (optional)'}")
-    return _validate(path)
+def _doctor(path: Path, output_format: str = "text") -> int:
+    details: dict[str, Any] = {
+        "version": __version__,
+        "python": platform.python_version(),
+        "executable": sys.executable,
+        "platform": platform.platform(),
+        "git": shutil.which("git"),
+        "uv": shutil.which("uv"),
+    }
+    findings = validate_project(path.resolve())
+    errors = sum(item.level == "error" for item in findings)
+    warnings = sum(item.level == "warning" for item in findings)
+    if output_format == "json":
+        details.update(
+            {
+                "ok": errors == 0,
+                "errors": errors,
+                "warnings": warnings,
+                "findings": [
+                    {"level": item.level, "path": str(item.path), "message": item.message}
+                    for item in findings
+                ],
+            }
+        )
+        print(json.dumps(details, sort_keys=True))
+    else:
+        print(f"Governed Agent SDLC: {details['version']}")
+        print(f"Python: {details['python']} ({details['executable']})")
+        print(f"Platform: {details['platform']}")
+        print(f"Git: {details['git'] or 'NOT FOUND'}")
+        print(f"uv: {details['uv'] or 'NOT FOUND (optional)'}")
+        for finding in findings:
+            print(finding)
+        print(f"Validation complete: {errors} error(s), {warnings} warning(s).")
+    return 1 if errors else 0
+
+
+def _artifact_files(root: Path) -> list[Path]:
+    return sorted((root / "docs" / "agent").glob("**/*.md"))
+
+
+def _artifact_list(path: Path, output_format: str) -> int:
+    root = find_project_root(path)
+    artifacts = [parse_artifact(item) for item in _artifact_files(root)]
+    rows = [
+        {
+            "id": item.id,
+            "kind": item.kind,
+            "status": item.status,
+            "parent": item.metadata.get("parent"),
+            "path": str(item.path.relative_to(root)),
+        }
+        for item in artifacts
+    ]
+    if output_format == "json":
+        print(json.dumps(rows, sort_keys=True))
+    else:
+        for row in rows:
+            parent = f" <- {row['parent']}" if row["parent"] else ""
+            print(f"{row['status']:<18} {row['kind']:<7} {row['id']}{parent}")
+    return 0
+
+
+def _artifact_show(path: Path, artifact_path: str, output_format: str) -> int:
+    root = find_project_root(path)
+    artifact = parse_artifact(_project_artifact_path(root, artifact_path))
+    if output_format == "json":
+        print(
+            json.dumps(
+                {"metadata": artifact.metadata, "body": artifact.body}, default=str, sort_keys=True
+            )
+        )
+    else:
+        print(serialize_artifact(artifact), end="")
+    return 0
+
+
+def _artifact_graph(path: Path, output_format: str) -> int:
+    root = find_project_root(path)
+    artifacts = [parse_artifact(item) for item in _artifact_files(root)]
+    edges = [
+        {"from": str(item.metadata["parent"]), "to": item.id}
+        for item in artifacts
+        if item.metadata.get("parent")
+    ]
+    graph = {"nodes": [item.id for item in artifacts], "edges": edges}
+    if output_format == "json":
+        print(json.dumps(graph, sort_keys=True))
+    else:
+        for edge in edges:
+            print(f"{edge['from']} -> {edge['to']}")
+    return 0
+
+
+def _migrate(path: Path, target: int, dry_run: bool, output_format: str) -> int:
+    root = find_project_root(path)
+    candidates = [root / name for name in MANIFEST_NAMES if (root / name).is_file()]
+    if len(candidates) != 1:
+        raise ConfigError("Manifest migration requires exactly one project manifest")
+    try:
+        with candidates[0].open("rb") as handle:
+            raw = tomllib.load(handle)
+    except tomllib.TOMLDecodeError as exc:
+        raise ConfigError(f"Invalid TOML manifest: {exc}") from exc
+    current = raw.get("version")
+    if type(current) is not int:
+        raise ConfigError("Manifest version must be an integer before migration")
+    if target != SUPPORTED_MANIFEST_VERSION:
+        raise ConfigError(f"No safe migration path to manifest version {target}")
+    if current != target:
+        raise ConfigError(f"No safe migration path from manifest version {current} to {target}")
+    data = {
+        "ok": True,
+        "changed": False,
+        "dry_run": dry_run,
+        "version": current,
+        "path": str(candidates[0]),
+    }
+    _emit(data, output_format, f"Manifest is already at version {current}; no changes required.")
+    return 0
+
+
+def _add_format(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--format", dest="output_format", choices=("text", "json"), default="text")
+
+
+def _paths(values: list[Path]) -> list[str]:
+    return [str(value) for value in values]
+
+
+def _emit(data: dict[str, Any], output_format: str, text: str) -> None:
+    print(json.dumps(data, sort_keys=True) if output_format == "json" else text)

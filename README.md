@@ -5,10 +5,11 @@
 **Ship with agents. Keep humans in control.**
 
 [![Validate](https://github.com/vannt-dev/governed-agent-sdlc/actions/workflows/validate.yml/badge.svg)](https://github.com/vannt-dev/governed-agent-sdlc/actions/workflows/validate.yml)
+[![PyPI](https://img.shields.io/pypi/v/governed-agent-sdlc.svg)](https://pypi.org/project/governed-agent-sdlc/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-0b7771)](https://www.python.org/)
 [![MIT License](https://img.shields.io/badge/License-MIT-f06f4f.svg)](LICENSE)
 
-[Project website](https://vannt-dev.github.io/governed-agent-sdlc/) · [Architecture](docs/architecture.md) · [Workflow](docs/workflow.md) · [Adoption guide](docs/adoption.md)
+[Project website](https://vannt-dev.github.io/governed-agent-sdlc/) · [Architecture](docs/architecture.md) · [Workflow](docs/workflow.md) · [CLI reference](docs/cli.md) · [Adoption guide](docs/adoption.md)
 
 </div>
 
@@ -19,9 +20,9 @@ security, artifact, review, and QA rules can be applied to different technology 
 The project is intentionally **human-in-the-loop**. It helps agents work predictably; it does not
 grant an AI permission to approve, merge, release, or retrieve credentials.
 
-> **MVP status:** the core workflow, Claude Code adapter, deterministic safety hooks, and
-> cross-platform validation are available. Package publication and additional vendor adapters are
-> intentionally future work.
+> **Alpha status:** the core workflow, Claude Code and Codex adapters, deterministic safety hooks,
+> cross-platform validation, and PyPI Trusted Publishing are available. Interfaces may still evolve
+> before 1.0.
 
 ## What is included
 
@@ -30,12 +31,21 @@ grant an AI permission to approve, merge, release, or retrieve credentials.
 - A TOML project manifest for repository layout, profiles, commands, and protected areas.
 - A dependency-free Python CLI: `init`, `generate`, `validate`, `doctor`, and artifact commands.
 - Claude Code agent generation and safety hooks.
+- Native Codex project configuration and governed role generation.
 - Stack profiles for generic repositories, Python, .NET, and Nuxt.
 - Cross-platform tests and reusable GitHub Actions.
 
 ## Quick start
 
-Requires Python 3.11 or newer. From this repository:
+Requires Python 3.11 or newer. Install the published package:
+
+```bash
+python -m pip install governed-agent-sdlc
+agentkit --version
+agentkit doctor
+```
+
+For local development:
 
 ```bash
 python -m pip install -e .
@@ -51,6 +61,9 @@ agentkit init ../my-project --name my-project --adapter claude-code
 cd ../my-project
 agentkit doctor
 ```
+
+Use `--format json` with `validate`, `doctor`, generation, migration, and artifact inspection
+commands for automation. Preview additive initialization or adapter generation with `--dry-run`.
 
 Initialization is additive: existing `AGENTS.md`, manifest, core policy, hook, and adapter files are
 not overwritten. A fresh project receives the generic stack profiles and a minimal `AGENTS.md` so
@@ -126,8 +139,10 @@ See [Architecture](docs/architecture.md), [Workflow](docs/workflow.md), and
 
 ## Maturity
 
-Version 0.1.0 is an MVP. Claude Code is the first adapter. Codex and other adapters should consume
-the same core contracts rather than introduce parallel policy files.
+Version 0.1.1 is an alpha. Claude Code and Codex consume the same core contracts rather than
+introducing parallel policy files.
+
+See [CHANGELOG.md](CHANGELOG.md) for release history and upgrade notes.
 
 ## License
 
