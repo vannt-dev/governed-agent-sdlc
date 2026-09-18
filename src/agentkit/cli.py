@@ -85,6 +85,21 @@ def build_parser() -> argparse.ArgumentParser:
     move.add_argument("target")
     move.add_argument("--approved-by")
     move.add_argument("--evidence")
+
+    review = sub.add_parser("review", help="Evaluate review findings or execute review provider")
+    review_sub = review.add_subparsers(dest="review_command", required=True)
+
+    evaluate = review_sub.add_parser("evaluate", help="Evaluate findings file against governance policies")
+    evaluate.add_argument("findings_path", help="Path to raw findings JSON file")
+    evaluate.add_argument("--output-dir", help="Directory to store review evidence")
+    _add_format(evaluate)
+
+    run_rev = review_sub.add_parser("run", help="Run a review provider and evaluate governance policies")
+    run_rev.add_argument("--provider", choices=("mock", "open-code-review"), default="mock")
+    run_rev.add_argument("--files", nargs="*", default=[])
+    run_rev.add_argument("--output-dir", help="Directory to store review evidence")
+    _add_format(run_rev)
+
     return parser
 
 
@@ -133,6 +148,10 @@ def main(argv: list[str] | None = None) -> int:
             path.write_text(serialize_artifact(updated), encoding="utf-8")
             print(f"{artifact.status} -> {updated.status}: {path}")
             return 0
+        if args.command == "review" and args.review_command == "evaluate":
+            return _review_evaluate(Path(args.findings_path), args.output_dir, args.output_format)
+        if args.command == "review" and args.review_command == "run":
+            return _review_run(args.provider, args.files, args.output_dir, args.output_format)
     except (ArtifactError, ConfigError, OSError) as exc:
         if getattr(args, "output_format", "text") == "json":
             print(json.dumps({"ok": False, "error": str(exc)}, sort_keys=True), file=sys.stderr)
@@ -337,3 +356,68 @@ def _paths(values: list[Path]) -> list[str]:
 
 def _emit(data: dict[str, Any], output_format: str, text: str) -> None:
     print(json.dumps(data, sort_keys=True) if output_format == "json" else text)
+
+
+def _review_evaluate(findings_path: Path, output_dir: str | None, output_format: str) -> int:
+    from agentkit.policy import PolicyEngine
+    from agentkit.review import FindingNormalizer, NormalizedFinding, ReviewResult, write_review_evidence
+
+    if not findings_path.is_file():
+        raise ConfigError(f"Findings file not found: {findings_path}")
+
+    try:
+        raw_text = findings_path.read_text(encoding="utf-8")
+        parsed = json.loads(raw_text)
+    except Exception as exc:
+        raise ConfigError(f"Invalid findings JSON: {exc}") from exc
+
+    items = parsed if isinstance(parsed, list) else parsed.get("findings", [])
+    findings = [
+        FindingNormalizer.normalize(item, source=findings_path.stem, fallback_id=f"f-{i+1}")
+        for i, item in enumerate(items)
+        if isinstance(item, dict)
+    ]
+    engine = PolicyEngine()
+    decision = engine.evaluate(findings)
+
+    if output_dir:
+        res = ReviewResult(provider="file", passed=(decision.action == "continue"), findings=tuple(findings))
+        write_review_evidence(Path(output_dir), res, decision)
+
+    _emit(
+        decision.to_dict(),
+        output_format,
+        f"Governance Decision: {decision.action.upper()} | Blocked: {decision.blocked} | "
+        f"Requires Approval: {decision.requires_approval}\n"
+        + "\n".join(f"- {r}" for r in decision.reasons),
+    )
+    return 1 if decision.blocked else 0
+
+
+def _review_run(provider_name: str, files: list[str], output_dir: str | None, output_format: str) -> int:
+    from agentkit.policy import PolicyEngine
+    from agentkit.review import MockReviewProvider, OpenCodeReviewProvider, ReviewContext, write_review_evidence
+
+    root = find_project_root()
+    context = ReviewContext(run_id="cli-run", repository_root=root, files=tuple(files))
+    provider = OpenCodeReviewProvider() if provider_name == "open-code-review" else MockReviewProvider()
+    result = provider.review(context)
+
+    engine = PolicyEngine()
+    decision = engine.evaluate(result.findings)
+
+    if output_dir:
+        write_review_evidence(Path(output_dir), result, decision)
+
+    _emit(
+        {
+            "review": result.to_dict(),
+            "governance": decision.to_dict(),
+        },
+        output_format,
+        f"Provider: {result.provider} (Passed: {result.passed})\n"
+        f"Decision: {decision.action.upper()}\n"
+        + "\n".join(f"- {r}" for r in decision.reasons),
+    )
+    return 1 if decision.blocked else 0
+

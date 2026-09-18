@@ -202,6 +202,50 @@ class CliTests(unittest.TestCase):
             self.assertFalse(payload["ok"])
             self.assertIn("Invalid TOML manifest", payload["error"])
 
+    def test_review_evaluate_cli(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            findings_file = Path(temp) / "findings.json"
+            findings_file.write_text(
+                json.dumps(
+                    [
+                        {
+                            "id": "f-1",
+                            "severity": "critical",
+                            "category": "security",
+                            "file": "main.py",
+                            "message": "Critical vulnerability",
+                        }
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            out_dir = Path(temp) / "evidence"
+            output = io.StringIO()
+            with redirect_stdout(output):
+                # blocked exit code is 1
+                exit_code = main(
+                    ["review", "evaluate", str(findings_file), "--output-dir", str(out_dir), "--format", "json"]
+                )
+            self.assertEqual(1, exit_code)
+            data = json.loads(output.getvalue())
+            self.assertEqual(data["decision"], "block")
+            self.assertTrue(data["blocked"])
+            self.assertTrue((out_dir / "findings.json").is_file())
+            self.assertTrue((out_dir / "policy-result.json").is_file())
+
+    def test_review_run_cli_mock(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp) / "project"
+            main(["init", str(project), "--adapter", "none"])
+            output = io.StringIO()
+            with patch("agentkit.cli.find_project_root", return_value=project), redirect_stdout(output):
+                exit_code = main(["review", "run", "--provider", "mock", "--format", "json"])
+            self.assertEqual(0, exit_code)
+            data = json.loads(output.getvalue())
+            self.assertEqual(data["review"]["provider"], "mock")
+            self.assertEqual(data["governance"]["decision"], "continue")
+
 
 if __name__ == "__main__":
     unittest.main()
+
