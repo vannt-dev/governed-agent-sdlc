@@ -54,6 +54,53 @@
     "commands": {
       "type": "object",
       "additionalProperties": { "type": "string" }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "provider": { "enum": ["mock", "open-code-review"] },
+        "timeout_seconds": { "type": "integer", "minimum": 1, "maximum": 3600 },
+        "include_requirement": { "type": "boolean" },
+        "include_spec": { "type": "boolean" },
+        "include_plan": { "type": "boolean" }
+      }
+    },
+    "policies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "action"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "action": {
+            "enum": ["continue", "warn", "block", "require-human-approval", "require-remediation"]
+          },
+          "severity": { "enum": ["critical", "high", "medium", "low", "info"] },
+          "category": {
+            "enum": [
+              "security",
+              "correctness",
+              "performance",
+              "maintainability",
+              "testing",
+              "architecture",
+              "other"
+            ]
+          },
+          "file_pattern": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "remediation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "max_attempts": { "type": "integer", "minimum": 1, "maximum": 10 }
+      }
     }
   }
 }
