@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -10,7 +10,28 @@ MANIFEST_NAMES = ("agentkit.toml", ".agent/project.toml")
 SUPPORTED_MANIFEST_VERSION = 1
 SUPPORTED_TOPOLOGIES = {"single-repo", "monorepo", "polyrepo"}
 WORKFLOW_FLAGS = ("require_spec", "require_plan", "require_review", "require_qa")
-MANIFEST_FIELDS = {"version", "protected_areas", "project", "repositories", "workflow", "commands"}
+MANIFEST_FIELDS = {
+    "version",
+    "protected_areas",
+    "project",
+    "repositories",
+    "workflow",
+    "commands",
+    "review",
+    "policies",
+    "remediation",
+}
+REVIEW_PROVIDERS = ("mock", "open-code-review", "cli")
+REVIEW_DEFAULTS: dict[str, Any] = {
+    "provider": "mock",
+    "timeout_seconds": 180,
+    "include_requirement": True,
+    "include_spec": True,
+    "include_plan": True,
+    "enforce_artifact_gate": False,
+    "approval_mode": "local",
+}
+REMEDIATION_DEFAULTS: dict[str, Any] = {"enabled": True, "max_attempts": 2}
 
 
 class ConfigError(ValueError):
@@ -33,6 +54,55 @@ class ProjectConfig:
     workflow: dict[str, Any]
     protected_areas: tuple[str, ...]
     commands: dict[str, Any]
+    review: dict[str, Any] = field(default_factory=lambda: dict(REVIEW_DEFAULTS))
+    policies: tuple[dict[str, Any], ...] = ()
+    remediation: dict[str, Any] = field(default_factory=lambda: dict(REMEDIATION_DEFAULTS))
+
+
+def _load_review_settings(
+    raw: dict[str, Any],
+) -> tuple[dict[str, Any], tuple[dict[str, Any], ...], dict[str, Any]]:
+    from agentkit.policy import load_policies
+
+    review = dict(REVIEW_DEFAULTS)
+    review_raw = raw.get("review", {})
+    if not isinstance(review_raw, dict):
+        raise ConfigError("[review] must be a table")
+    _reject_unknown_fields(review_raw, set(REVIEW_DEFAULTS), "[review]")
+    review.update(review_raw)
+    if review["provider"] not in REVIEW_PROVIDERS:
+        raise ConfigError(f"[review].provider must be one of: {', '.join(REVIEW_PROVIDERS)}")
+    timeout = review["timeout_seconds"]
+    if type(timeout) is not int or not 1 <= timeout <= 3600:
+        raise ConfigError("[review].timeout_seconds must be an integer between 1 and 3600")
+    for flag in ("include_requirement", "include_spec", "include_plan", "enforce_artifact_gate"):
+        if not isinstance(review[flag], bool):
+            raise ConfigError(f"[review].{flag} must be a boolean")
+    if review["approval_mode"] not in ("local", "github"):
+        raise ConfigError("[review].approval_mode must be local or github")
+
+    remediation = dict(REMEDIATION_DEFAULTS)
+    remediation_raw = raw.get("remediation", {})
+    if not isinstance(remediation_raw, dict):
+        raise ConfigError("[remediation] must be a table")
+    _reject_unknown_fields(remediation_raw, set(REMEDIATION_DEFAULTS), "[remediation]")
+    remediation.update(remediation_raw)
+    if not isinstance(remediation["enabled"], bool):
+        raise ConfigError("[remediation].enabled must be a boolean")
+    attempts = remediation["max_attempts"]
+    if type(attempts) is not int or not 1 <= attempts <= 10:
+        raise ConfigError("[remediation].max_attempts must be an integer between 1 and 10")
+
+    policies_raw = raw.get("policies", [])
+    if not isinstance(policies_raw, list) or any(
+        not isinstance(item, dict) for item in policies_raw
+    ):
+        raise ConfigError("[[policies]] must be an array of tables")
+    try:
+        load_policies(policies_raw)  # validates ids, actions and field types
+    except ValueError as exc:
+        raise ConfigError(str(exc)) from exc
+    return review, tuple(dict(item) for item in policies_raw), remediation
 
 
 def _require_table(raw: dict[str, Any], key: str) -> dict[str, Any]:
@@ -182,6 +252,7 @@ def load_config(root: Path | None = None) -> ProjectConfig:
     ):
         raise ConfigError("[commands] values must be strings")
 
+    review, policies, remediation = _load_review_settings(raw)
     return ProjectConfig(
         root=project_root,
         manifest_path=path,
@@ -190,6 +261,9 @@ def load_config(root: Path | None = None) -> ProjectConfig:
         workflow=dict(workflow),
         protected_areas=protected_areas,
         commands=dict(commands),
+        review=review,
+        policies=policies,
+        remediation=remediation,
     )
 
 

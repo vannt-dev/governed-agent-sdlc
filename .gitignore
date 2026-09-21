@@ -11,3 +11,4 @@ dist/
 .claude/settings.local.json
 .temp/
 
+.agent/runs/

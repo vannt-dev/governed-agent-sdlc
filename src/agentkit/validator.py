@@ -59,7 +59,60 @@ def validate_project(root: Path | None = None) -> list[Finding]:
     artifacts, parse_findings = _load_artifacts(config.root)
     findings.extend(parse_findings)
     findings.extend(_validate_artifacts(config, artifacts))
+    findings.extend(_validate_review_runs(config.root))
     return findings
+
+
+def _validate_review_runs(root: Path) -> list[Finding]:
+    """Check stored review evidence: attempt schemas, approval records and the event log."""
+    from agentkit.approval import AI_ACTOR_TOKENS, VALID_DECISIONS
+    from agentkit.events import validate_events
+    from agentkit.remediation import existing_attempts
+    from agentkit.review import validate_review_evidence
+    from agentkit.runs import RUNS_RELATIVE
+
+    findings: list[Finding] = []
+    runs_root = root / RUNS_RELATIVE
+    if not runs_root.is_dir():
+        return findings
+    for run_dir in sorted(path for path in runs_root.iterdir() if path.is_dir()):
+        for number in existing_attempts(run_dir):
+            attempt_dir = run_dir / f"review-attempt-{number}"
+            for problem in validate_review_evidence(attempt_dir):
+                findings.append(Finding("error", attempt_dir, problem))
+        for problem in validate_events(run_dir):
+            findings.append(Finding("error", run_dir, problem))
+        for file in sorted((run_dir / "approvals").glob("review-approval-*.json")):
+            findings.extend(_validate_approval_file(file, AI_ACTOR_TOKENS, VALID_DECISIONS))
+    return findings
+
+
+def _validate_approval_file(
+    file: Path, ai_tokens: frozenset[str], decisions: tuple[str, ...]
+) -> list[Finding]:
+    import json
+    import re
+
+    try:
+        record = json.loads(file.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return [Finding("error", file, f"Approval record is unreadable: {exc}")]
+    if not isinstance(record, dict):
+        return [Finding("error", file, "Approval record must be an object")]
+    problems: list[str] = []
+    if record.get("decision") not in decisions:
+        problems.append("decision must be approved or rejected")
+    actor = record.get("actor")
+    if not isinstance(actor, str) or not actor.strip():
+        problems.append("actor is required")
+    elif any(token in ai_tokens for token in re.split(r"[^a-z0-9]+", actor.lower()) if token):
+        problems.append("actor must be a human identity, not an AI agent")
+    evidence = record.get("evidence")
+    if not isinstance(evidence, str) or not evidence.strip():
+        problems.append("evidence is required")
+    if not isinstance(record.get("policyId"), str):
+        problems.append("policyId is required")
+    return [Finding("error", file, problem) for problem in problems]
 
 
 def _validate_repositories(config: ProjectConfig) -> list[Finding]:
