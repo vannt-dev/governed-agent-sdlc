@@ -30,21 +30,23 @@ def build_run_report(run_dir: Path, run_id: str) -> dict[str, Any]:
         attempt_dir = run_dir / f"review-attempt-{number}"
         policy = _load_json(attempt_dir / "policy-result.json")
         findings = _load_json(attempt_dir / "findings.json") or []
-        provider = _load_json(attempt_dir / "provider.json") or {}
-        provider_error = _load_json(attempt_dir / "provider-error.json")
+        provider_data = _load_json(attempt_dir / "provider.json")
+        provider = provider_data if isinstance(provider_data, dict) else {}
+        error_data = _load_json(attempt_dir / "provider-error.json")
+        provider_error = error_data if isinstance(error_data, dict) else None
         escalation = _load_json(attempt_dir / "escalation.json")
 
         counts = {severity: 0 for severity in SEVERITIES}
         for finding in findings if isinstance(findings, list) else []:
             severity = finding.get("severity") if isinstance(finding, dict) else None
-            if severity in counts:
+            if isinstance(severity, str) and severity in counts:
                 counts[severity] += 1
 
         gate: dict[str, Any] = {"status": "unknown", "detail": "policy-result.json is unreadable"}
         if isinstance(policy, dict):
             try:
                 gate = attempt_gate(run_dir, number)[1].to_dict()
-            except ValueError as exc:
+            except (ValueError, OSError) as exc:
                 gate = {"status": "unknown", "detail": str(exc)}
 
         attempts.append(
@@ -55,8 +57,8 @@ def build_run_report(run_dir: Path, run_id: str) -> dict[str, Any]:
                 "artifact": provider.get("artifact"),
                 "findings": counts,
                 "decision": policy.get("decision") if isinstance(policy, dict) else None,
-                "policies": [p.get("policyId") for p in (policy or {}).get("policies", [])]
-                if isinstance(policy, dict)
+                "policies": [p.get("policyId") for p in policy["policies"] if isinstance(p, dict)]
+                if isinstance(policy, dict) and isinstance(policy.get("policies"), list)
                 else [],
                 "escalated": bool(escalation),
                 "providerError": provider_error,

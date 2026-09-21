@@ -21,13 +21,15 @@ MANIFEST_FIELDS = {
     "policies",
     "remediation",
 }
-REVIEW_PROVIDERS = ("mock", "open-code-review")
+REVIEW_PROVIDERS = ("mock", "open-code-review", "cli")
 REVIEW_DEFAULTS: dict[str, Any] = {
     "provider": "mock",
     "timeout_seconds": 180,
     "include_requirement": True,
     "include_spec": True,
     "include_plan": True,
+    "enforce_artifact_gate": False,
+    "approval_mode": "local",
 }
 REMEDIATION_DEFAULTS: dict[str, Any] = {"enabled": True, "max_attempts": 2}
 
@@ -73,9 +75,11 @@ def _load_review_settings(
     timeout = review["timeout_seconds"]
     if type(timeout) is not int or not 1 <= timeout <= 3600:
         raise ConfigError("[review].timeout_seconds must be an integer between 1 and 3600")
-    for flag in ("include_requirement", "include_spec", "include_plan"):
+    for flag in ("include_requirement", "include_spec", "include_plan", "enforce_artifact_gate"):
         if not isinstance(review[flag], bool):
             raise ConfigError(f"[review].{flag} must be a boolean")
+    if review["approval_mode"] not in ("local", "github"):
+        raise ConfigError("[review].approval_mode must be local or github")
 
     remediation = dict(REMEDIATION_DEFAULTS)
     remediation_raw = raw.get("remediation", {})

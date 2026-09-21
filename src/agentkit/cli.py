@@ -102,7 +102,9 @@ def build_parser() -> argparse.ArgumentParser:
         "run", help="Run a review provider and evaluate governance policies"
     )
     run_rev.add_argument(
-        "--provider", choices=("mock", "open-code-review"), help="Defaults to [review].provider"
+        "--provider",
+        choices=("mock", "open-code-review", "cli"),
+        help="Defaults to [review].provider",
     )
     run_rev.add_argument("--run-id", help="Reuse a run id to record another review attempt")
     run_rev.add_argument(
@@ -142,6 +144,13 @@ def build_parser() -> argparse.ArgumentParser:
     status.add_argument("--run-id", required=True)
     status.add_argument("--attempt", type=int, help="Defaults to the latest attempt")
     _add_format(status)
+
+    recover = review_sub.add_parser(
+        "recover", help="Seal an interrupted attempt without overwriting evidence"
+    )
+    recover.add_argument("--run-id", required=True)
+    recover.add_argument("--attempt", type=int)
+    _add_format(recover)
 
     report = review_sub.add_parser("report", help="Summarize a run from its stored evidence")
     report.add_argument("--run-id", required=True)
@@ -195,6 +204,12 @@ def main(argv: list[str] | None = None) -> int:
             root = find_project_root()
             path = _project_artifact_path(root, args.artifact_path)
             artifact = parse_artifact(path)
+            if artifact.kind == "review" and args.target.strip().lower() == "completed":
+                from agentkit.config import load_config
+                from agentkit.runs import require_artifact_gate
+
+                if load_config(root).review["enforce_artifact_gate"]:
+                    require_artifact_gate(root, artifact.id, path)
             updated = transition(
                 artifact,
                 args.target,
@@ -212,6 +227,8 @@ def main(argv: list[str] | None = None) -> int:
             return _review_approve(args)
         if args.command == "review" and args.review_command == "status":
             return _review_status(args)
+        if args.command == "review" and args.review_command == "recover":
+            return _review_recover(args)
         if args.command == "review" and args.review_command == "preview":
             return _review_preview(args)
         if args.command == "review" and args.review_command == "report":
@@ -494,9 +511,20 @@ def _review_run_directory(args: argparse.Namespace, root: Path) -> tuple[str, Pa
 
 
 def _review_run(args: argparse.Namespace) -> int:
+    from agentkit.locking import run_lock
+
+    root = find_project_root()
+    run_id, run_dir = _review_run_directory(args, root)
+    args.run_id = run_id
+    with run_lock(run_dir):
+        return _review_run_locked(args)
+
+
+def _review_run_locked(args: argparse.Namespace) -> int:
     import time
 
     from agentkit.config import load_config
+    from agentkit.freshness import capture_source
     from agentkit.policy import PolicyEngine, load_policies, provider_error_decision
     from agentkit.remediation import RemediationManager, next_attempt_number
     from agentkit.review import (
@@ -546,6 +574,10 @@ def _review_run(args: argparse.Namespace) -> int:
     )
     if provider_name == "open-code-review":
         provider: Any = OpenCodeReviewProvider(timeout_seconds=config.review["timeout_seconds"])
+    elif provider_name == "cli":
+        from agentkit.cli_review import CliReviewProvider
+
+        provider = CliReviewProvider(timeout_seconds=config.review["timeout_seconds"])
     else:
         provider = MockReviewProvider(findings=_load_mock_findings(args.mock_findings))
 
@@ -555,6 +587,12 @@ def _review_run(args: argparse.Namespace) -> int:
     )
 
     artifact_ref = _artifact_reference(root, args.artifact)
+    snapshot = capture_source(
+        root, {"from": args.from_ref, "to": args.to_ref, "commit": args.commit}, background
+    )
+    attempt_dir.mkdir(parents=True, exist_ok=False)
+    (attempt_dir / "source.json").write_text(json.dumps(snapshot, indent=2), encoding="utf-8")
+    (attempt_dir / "in-progress").write_text("Review has not finalized\n", encoding="utf-8")
     emit_event(
         run_dir,
         run_id,
@@ -564,9 +602,19 @@ def _review_run(args: argparse.Namespace) -> int:
     started = time.monotonic()
     try:
         result = provider.review(context)
+        if (
+            capture_source(root, snapshot["refs"], background)["fingerprint"]
+            != snapshot["fingerprint"]
+        ):
+            raise ReviewProviderError(
+                "stale",
+                "Source or review inputs changed while the reviewer was running",
+                result.findings,
+            )
     except ReviewProviderError as error:
         decision = provider_error_decision(error.kind, error.message)
         write_provider_error_evidence(attempt_dir, provider_name, error, decision)
+        (attempt_dir / "in-progress").unlink()
         emit_event(
             run_dir, run_id, "review.failed", {"attempt": attempt_number, "kind": error.kind}
         )
@@ -593,8 +641,11 @@ def _review_run(args: argparse.Namespace) -> int:
             "runId": run_id,
             "wallMs": int((time.monotonic() - started) * 1000),
             "artifact": artifact_ref,
+            "approvalMode": config.review["approval_mode"],
         },
+        attempt_number=attempt_number,
     )
+    (attempt_dir / "in-progress").unlink()
     gate = review_gate_status(
         limited, run_dir, attempt_number, nothing_to_review=result.nothing_to_review
     )
@@ -672,6 +723,14 @@ def _latest_attempt(run_dir: Path, requested: int | None) -> int:
 
 
 def _review_approve(args: argparse.Namespace) -> int:
+    from agentkit.locking import run_lock
+    from agentkit.runs import run_directory
+
+    with run_lock(run_directory(find_project_root(), args.run_id)):
+        return _review_approve_locked(args)
+
+
+def _review_approve_locked(args: argparse.Namespace) -> int:
     from agentkit.approval import record_review_approval
     from agentkit.policy import GovernanceDecision
     from agentkit.runs import attempt_gate, run_directory
@@ -679,6 +738,9 @@ def _review_approve(args: argparse.Namespace) -> int:
     root = find_project_root()
     run_dir = run_directory(root, args.run_id)
     attempt = _latest_attempt(run_dir, args.attempt)
+    _, existing_gate = attempt_gate(run_dir, attempt, root=root)
+    if existing_gate.status in ("stale", "unverified", "provider-error"):
+        raise ConfigError(existing_gate.detail)
     policy_file = run_dir / f"review-attempt-{attempt}" / "policy-result.json"
     if not policy_file.is_file():
         raise ConfigError(f"Attempt {attempt} has no policy-result.json; nothing to approve")
@@ -689,6 +751,15 @@ def _review_approve(args: argparse.Namespace) -> int:
             f"Policy '{args.policy}' did not require human approval on attempt {attempt}. "
             f"Policies awaiting approval: {', '.join(fired) or 'none'}"
         )
+    verification = None
+    provider_meta = json.loads((policy_file.parent / "provider.json").read_text(encoding="utf-8"))
+    if provider_meta.get("approvalMode") == "github":
+        from agentkit.github_approval import verify_github_review
+
+        snapshot = json.loads((policy_file.parent / "source.json").read_text(encoding="utf-8"))
+        verification = verify_github_review(
+            root, args.evidence, args.actor, "rejected" if args.reject else "approved", snapshot
+        )
     record = record_review_approval(
         run_dir,
         args.policy,
@@ -697,6 +768,7 @@ def _review_approve(args: argparse.Namespace) -> int:
         args.evidence,
         decision="rejected" if args.reject else "approved",
         attempt=attempt,
+        verification=verification,
     )
     emit_event(
         run_dir,
@@ -704,7 +776,7 @@ def _review_approve(args: argparse.Namespace) -> int:
         "approval.rejected" if args.reject else "approval.granted",
         {"attempt": attempt, "policy": args.policy},
     )
-    _, gate = attempt_gate(run_dir, attempt)
+    _, gate = attempt_gate(run_dir, attempt, root=root)
     _emit(
         {"record": str(record), "attempt": attempt, "gate": gate.to_dict()},
         args.output_format,
@@ -720,7 +792,7 @@ def _review_status(args: argparse.Namespace) -> int:
     root = find_project_root()
     run_dir = run_directory(root, args.run_id)
     attempt = _latest_attempt(run_dir, args.attempt)
-    decision, gate = attempt_gate(run_dir, attempt)
+    decision, gate = attempt_gate(run_dir, attempt, root=root)
     _emit(
         {
             "run": {"id": args.run_id, "attempt": attempt},
@@ -731,6 +803,22 @@ def _review_status(args: argparse.Namespace) -> int:
         f"Run {args.run_id} attempt {attempt}: {gate.status}\n{gate.detail}",
     )
     return gate.exit_code
+
+
+def _review_recover(args: argparse.Namespace) -> int:
+    from agentkit.locking import run_lock
+    from agentkit.runs import recover_attempt, run_directory
+
+    run_dir = run_directory(find_project_root(), args.run_id)
+    with run_lock(run_dir):
+        attempt = _latest_attempt(run_dir, args.attempt)
+        recover_attempt(run_dir, args.run_id, attempt)
+    _emit(
+        {"recovered": True, "attempt": attempt},
+        args.output_format,
+        f"Sealed interrupted attempt {attempt}. Run review again for new evidence.",
+    )
+    return 0
 
 
 def _artifact_reference(root: Path, value: str | None) -> dict[str, str] | None:

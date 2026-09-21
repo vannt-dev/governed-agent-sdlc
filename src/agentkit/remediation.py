@@ -89,8 +89,22 @@ class RemediationManager:
         result: ReviewResult,
         decision: GovernanceDecision,
         provider_meta: dict[str, Any] | None = None,
+        attempt_number: int | None = None,
     ) -> tuple[RemediationAttempt, GovernanceDecision]:
-        attempt_num = next_attempt_number(base_dir)
+        from agentkit.locking import run_lock
+
+        with run_lock(base_dir):
+            return self._record_attempt(base_dir, result, decision, provider_meta, attempt_number)
+
+    def _record_attempt(
+        self,
+        base_dir: Path,
+        result: ReviewResult,
+        decision: GovernanceDecision,
+        provider_meta: dict[str, Any] | None,
+        attempt_number: int | None,
+    ) -> tuple[RemediationAttempt, GovernanceDecision]:
+        attempt_num = attempt_number or next_attempt_number(base_dir)
         attempt_dir = base_dir / f"review-attempt-{attempt_num}"
         limited = self.limit_decision(decision, attempt_num)
 

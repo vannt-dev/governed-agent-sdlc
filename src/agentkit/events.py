@@ -60,6 +60,15 @@ def read_events(run_dir: Path) -> list[dict[str, Any]]:
 def emit_event(
     run_dir: Path, run_id: str, event_type: str, payload: dict[str, Any] | None = None
 ) -> GovernanceEvent:
+    from agentkit.locking import run_lock
+
+    with run_lock(run_dir):
+        return _emit_event(run_dir, run_id, event_type, payload)
+
+
+def _emit_event(
+    run_dir: Path, run_id: str, event_type: str, payload: dict[str, Any] | None
+) -> GovernanceEvent:
     """Append one event to the run log.
 
     The log is append-only and derived from the evidence files, never the source of truth: it lets
@@ -68,6 +77,9 @@ def emit_event(
     if event_type not in EVENT_TYPES:
         raise ValueError(f"Unknown governance event type: {event_type}")
     run_dir.mkdir(parents=True, exist_ok=True)
+    problems = validate_events(run_dir)
+    if problems:
+        raise ValueError("Cannot append to invalid event log: " + "; ".join(problems))
     sequence = len(read_events(run_dir)) + 1
     event = GovernanceEvent(
         id=f"{run_id}-{sequence:04d}",
@@ -97,7 +109,11 @@ def validate_events(run_dir: Path) -> list[str]:
         except json.JSONDecodeError:
             problems.append(f"{EVENTS_FILE} line {number} is not valid JSON")
             continue
-        if not isinstance(item, dict) or item.get("type") not in EVENT_TYPES:
+        if (
+            not isinstance(item, dict)
+            or not isinstance(item.get("type"), str)
+            or item["type"] not in EVENT_TYPES
+        ):
             problems.append(f"{EVENTS_FILE} line {number} has an unknown event type")
             continue
         if not str(item.get("id", "")).endswith(f"-{expected:04d}"):

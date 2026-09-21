@@ -59,11 +59,13 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "provider": { "enum": ["mock", "open-code-review"] },
+        "provider": { "enum": ["mock", "open-code-review", "cli"] },
         "timeout_seconds": { "type": "integer", "minimum": 1, "maximum": 3600 },
         "include_requirement": { "type": "boolean" },
         "include_spec": { "type": "boolean" },
-        "include_plan": { "type": "boolean" }
+        "include_plan": { "type": "boolean" },
+        "enforce_artifact_gate": { "type": "boolean" },
+        "approval_mode": { "enum": ["local", "github"] }
       }
     },
     "policies": {

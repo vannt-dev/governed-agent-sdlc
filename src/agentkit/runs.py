@@ -26,6 +26,7 @@ EXIT_PROVIDER_ERROR = 3
 EXIT_AWAITING_APPROVAL = 4
 EXIT_REMEDIATION_REQUIRED = 5
 EXIT_SKIPPED = 6
+EXIT_STALE = 7
 
 
 def new_run_id() -> str:
@@ -161,7 +162,9 @@ def review_gate_status(
     return GateStatus("passed", EXIT_OK, "; ".join(decision.reasons))
 
 
-def attempt_gate(run_dir: Path, attempt: int) -> tuple[GovernanceDecision, GateStatus]:
+def attempt_gate(
+    run_dir: Path, attempt: int, *, root: Path | None = None
+) -> tuple[GovernanceDecision, GateStatus]:
     """Recompute the gate of one stored attempt from its evidence and the recorded approvals.
 
     A provider error and an escalation are read from their own records, so the stored
@@ -169,7 +172,29 @@ def attempt_gate(run_dir: Path, attempt: int) -> tuple[GovernanceDecision, GateS
     """
     import json
 
+    from agentkit.config import ConfigError, find_project_root
+    from agentkit.freshness import source_is_current
+    from agentkit.review import validate_review_evidence
+
     attempt_dir = run_dir / f"review-attempt-{attempt}"
+    if (attempt_dir / "recovery.json").is_file():
+        from agentkit.policy import provider_error_decision
+
+        decision = provider_error_decision(
+            "interrupted", "Interrupted attempt was sealed; run a fresh review"
+        )
+        return decision, GateStatus("provider-error", EXIT_PROVIDER_ERROR, decision.reasons[0])
+    if (attempt_dir / "in-progress").exists():
+        from agentkit.policy import provider_error_decision
+
+        decision = provider_error_decision(
+            "interrupted",
+            "Review is running or interrupted; use review recover after its writer exits",
+        )
+        return decision, GateStatus("provider-error", EXIT_PROVIDER_ERROR, decision.reasons[0])
+    problems = validate_review_evidence(attempt_dir)
+    if problems:
+        raise ValueError("Invalid review evidence: " + "; ".join(problems))
     decision = GovernanceDecision.from_dict(
         json.loads((attempt_dir / "policy-result.json").read_text(encoding="utf-8"))
     )
@@ -188,9 +213,80 @@ def attempt_gate(run_dir: Path, attempt: int) -> tuple[GovernanceDecision, GateS
             "provider-error", EXIT_PROVIDER_ERROR, "; ".join(decision.reasons)
         )
     provider_file = attempt_dir / "provider.json"
-    provider = (
-        json.loads(provider_file.read_text(encoding="utf-8")) if provider_file.is_file() else {}
-    )
+    if not provider_file.is_file():
+        raise ValueError("provider.json is missing; no completed review is available")
+    provider = json.loads(provider_file.read_text(encoding="utf-8"))
+    if not isinstance(provider, dict) or not isinstance(provider.get("nothingToReview"), bool):
+        raise ValueError("Invalid provider evidence")
+    snapshot_file = attempt_dir / "source.json"
+    if not snapshot_file.is_file():
+        return decision, GateStatus(
+            "unverified", EXIT_STALE, "Legacy review has no source fingerprint; run a fresh review"
+        )
+    try:
+        root = root or find_project_root(run_dir)
+    except ConfigError:
+        return decision, GateStatus("unverified", EXIT_STALE, "Cannot locate the reviewed project")
+    recorded = json.loads(snapshot_file.read_text(encoding="utf-8"))
+    if not isinstance(recorded, dict) or not source_is_current(root, run_dir, recorded):
+        return decision, GateStatus(
+            "stale", EXIT_STALE, "Source, refs, policy or background changed; run a fresh review"
+        )
     return decision, review_gate_status(
         decision, run_dir, attempt, nothing_to_review=provider.get("nothingToReview") is True
+    )
+
+
+def recover_attempt(run_dir: Path, run_id: str, attempt: int) -> None:
+    import json
+
+    from agentkit.events import emit_event
+    from agentkit.locking import run_lock
+
+    with run_lock(run_dir):
+        attempt_dir = run_dir / f"review-attempt-{attempt}"
+        marker = attempt_dir / "in-progress"
+        if not marker.is_file():
+            raise ValueError("Only an interrupted attempt can be recovered")
+        recovery = attempt_dir / "recovery.json"
+        # A crash during recovery is safe to retry. Original evidence is never replaced.
+        if not recovery.exists():
+            with recovery.open("x", encoding="utf-8") as handle:
+                json.dump(
+                    {"kind": "interrupted", "timestamp": datetime.now(UTC).isoformat()}, handle
+                )
+        emit_event(run_dir, run_id, "review.failed", {"attempt": attempt, "kind": "interrupted"})
+        marker.unlink()
+
+
+def require_artifact_gate(root: Path, artifact_id: str, artifact_path: Path) -> None:
+    import json
+
+    from agentkit.locking import run_lock
+    from agentkit.remediation import existing_attempts
+
+    relative = artifact_path.resolve().relative_to(root.resolve()).as_posix()
+    for run_dir in sorted((root / RUNS_RELATIVE).glob("*")):
+        if not run_dir.is_dir():
+            continue
+        with run_lock(run_dir):
+            attempts = existing_attempts(run_dir)
+            if not attempts:
+                continue
+            provider_path = run_dir / f"review-attempt-{attempts[-1]}" / "provider.json"
+            try:
+                provider = json.loads(provider_path.read_text(encoding="utf-8"))
+                if not isinstance(provider, dict) or provider.get("artifact") != {
+                    "id": artifact_id,
+                    "path": relative,
+                }:
+                    continue
+                _, gate = attempt_gate(run_dir, attempts[-1], root=root)
+                if gate.status == "passed":
+                    return
+            except (OSError, ValueError):
+                continue
+    raise ValueError(
+        "Completing this review artifact requires a fresh passing linked run; "
+        "use review run --artifact"
     )

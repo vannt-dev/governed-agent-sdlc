@@ -83,9 +83,35 @@ class GovernanceDecision:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> GovernanceDecision:
         """Rebuild a decision from stored `policy-result.json` evidence."""
+        if not isinstance(data, dict):
+            raise ValueError("Governance evidence must be an object")
         action = data.get("decision")
         if action not in ACTION_PRECEDENCE:
             raise ValueError(f"Unknown governance decision: {action!r}")
+        policies = data.get("policies", [])
+        if not isinstance(policies, list):
+            raise ValueError("Governance policies must be an array")
+        for item in policies:
+            if (
+                not isinstance(item, dict)
+                or not isinstance(item.get("policyId"), str)
+                or not item["policyId"]
+                or item.get("action") not in ACTION_PRECEDENCE
+                or not isinstance(item.get("findingIds"), list)
+                or any(not isinstance(value, str) or not value for value in item["findingIds"])
+            ):
+                raise ValueError("Invalid stored policy decision")
+        if action in ("require-human-approval", "require-remediation") and not any(
+            item["action"] == action and item["findingIds"] for item in policies
+        ):
+            raise ValueError(f"Missing policy evidence for {action}")
+        if policies:
+            primary = min((item["action"] for item in policies), key=ACTION_PRECEDENCE.index)
+            if primary != action:
+                raise ValueError("Governance decision disagrees with its policy evidence")
+        counts, reasons = data.get("findingsCount", {}), data.get("reasons", [])
+        if not isinstance(counts, dict) or not isinstance(reasons, list):
+            raise ValueError("Invalid governance counts or reasons")
         decisions = tuple(
             PolicyDecision(
                 policy_id=str(item["policyId"]),
@@ -93,7 +119,7 @@ class GovernanceDecision:
                 finding_ids=tuple(str(x) for x in item.get("findingIds", [])),
                 reason=str(item.get("reason", "")),
             )
-            for item in data.get("policies", [])
+            for item in policies
         )
         return cls(
             action=action,

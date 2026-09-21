@@ -11,7 +11,12 @@ from unittest.mock import patch
 from agentkit.cli import main
 from agentkit.events import EVENT_TYPES, emit_event, read_events, validate_events
 from agentkit.report import build_run_report, render_html
-from agentkit.review import VALID_CATEGORIES, VALID_SEVERITIES
+from agentkit.review import (
+    VALID_CATEGORIES,
+    VALID_SEVERITIES,
+    finding_contract_errors,
+    parse_ocr_output,
+)
 from agentkit.validator import validate_project
 
 SCHEMA = Path(__file__).resolve().parents[1] / "core" / "schemas" / "review-finding.schema.json"
@@ -56,13 +61,30 @@ class EventLogTests(unittest.TestCase):
 
 
 class SharedContractTests(unittest.TestCase):
+    def test_shared_fixture_and_sibling_contract_are_compatible(self) -> None:
+        fixture_path = SCHEMA.with_name("review-contract.fixture.json")
+        fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+        findings, _ = parse_ocr_output(json.dumps(fixture["input"]))
+        self.assertEqual(fixture["findings"], [f.to_dict() for f in findings])
+        for finding in findings:
+            self.assertEqual([], finding_contract_errors(finding.to_dict()))
+        self.assertTrue(finding_contract_errors({**findings[0].to_dict(), "metadata": None}))
+        sibling = SCHEMA.parents[3] / "junto/packages/core/contracts"
+        if sibling.is_dir():
+            for path in (SCHEMA, fixture_path):
+                self.assertEqual(
+                    json.loads(path.read_text(encoding="utf-8")),
+                    json.loads((sibling / path.name).read_text(encoding="utf-8")),
+                )
+
     def test_schema_enums_match_the_code(self) -> None:
         schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
         props = schema["properties"]
         self.assertEqual(VALID_SEVERITIES, set(props["severity"]["enum"]))
         self.assertEqual(VALID_CATEGORIES, set(props["category"]["enum"]))
         self.assertEqual(
-            {"id", "source", "severity", "category", "file", "message"}, set(schema["required"])
+            {"id", "source", "severity", "category", "file", "line", "message", "metadata"},
+            set(schema["required"]),
         )
         self.assertFalse(schema["additionalProperties"])
 
@@ -71,7 +93,8 @@ class ProjectFixture(unittest.TestCase):
     def setUp(self) -> None:
         self._temp = tempfile.TemporaryDirectory()
         self.addCleanup(self._temp.cleanup)
-        self.project = Path(self._temp.name) / "project"
+        # Resolve symlinks (macOS /var) and Windows short names before comparing CLI paths.
+        self.project = (Path(self._temp.name) / "project").resolve()
         with redirect_stdout(io.StringIO()):
             main(["init", str(self.project), "--adapter", "none"])
 
@@ -191,6 +214,28 @@ class RunEventsAndReportTests(ProjectFixture):
 
 
 class ValidateRunEvidenceTests(ProjectFixture):
+    def test_missing_or_invalid_evidence_cannot_reuse_a_passing_gate(self) -> None:
+        for filename, content in (
+            ("provider.json", None),
+            ("findings.json", None),
+            ("provider.json", "[]"),
+            ("findings.json", '[{"severity": [], "category": {}}]'),
+            ("policy-result.json", '{"decision":"require-human-approval","policies":[]}'),
+        ):
+            with self.subTest(filename=filename, content=content):
+                self.cli("review", "run", "--provider", "mock", "--run-id", "integrity")
+                run = self.project / ".agent" / "runs" / "integrity"
+                from agentkit.remediation import existing_attempts
+
+                path = run / f"review-attempt-{existing_attempts(run)[-1]}" / filename
+                if content is None:
+                    path.unlink()
+                else:
+                    path.write_text(content, encoding="utf-8")
+                self.assertEqual(2, self.cli("review", "status", "--run-id", "integrity")[0])
+                report = build_run_report(run, "integrity")
+                self.assertNotEqual("passed", report["latestGate"]["status"])
+
     def errors(self) -> list[str]:
         return [str(f) for f in validate_project(self.project) if f.level == "error"]
 

@@ -26,6 +26,7 @@ class ReviewApprovalRecord:
     approval_type: str = "review-policy-approval"
     attempt: int = 1
     timestamp: str = ""
+    verification: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -37,6 +38,7 @@ class ReviewApprovalRecord:
             "actor": self.actor,
             "evidence": self.evidence,
             "timestamp": self.timestamp or datetime.now(UTC).isoformat(),
+            "verification": self.verification,
         }
 
 
@@ -58,6 +60,26 @@ def record_review_approval(
     evidence: str,
     decision: str = "approved",
     attempt: int = 1,
+    verification: dict[str, Any] | None = None,
+) -> Path:
+    from agentkit.locking import run_lock
+
+    run_dir = output_dir.parent if output_dir.name == "approvals" else output_dir
+    with run_lock(run_dir):
+        return _record_review_approval(
+            output_dir, policy_id, finding_ids, actor, evidence, decision, attempt, verification
+        )
+
+
+def _record_review_approval(
+    output_dir: Path,
+    policy_id: str,
+    finding_ids: list[str] | tuple[str, ...],
+    actor: str,
+    evidence: str,
+    decision: str,
+    attempt: int,
+    verification: dict[str, Any] | None,
 ) -> Path:
     if not actor or not actor.strip() or _is_ai_actor(actor):
         raise ValueError(
@@ -86,6 +108,7 @@ def record_review_approval(
         decision=decision,
         attempt=attempt,
         timestamp=datetime.now(UTC).isoformat(),
+        verification=verification,
     )
 
     approval_file = approvals_dir / f"review-approval-attempt-{attempt}-{policy_id}.json"
@@ -131,17 +154,59 @@ def approval_status(
     """
     required = set(finding_ids) if finding_ids is not None else None
     approved = False
+    github_required = False
+    expected_commit = None
+    if (
+        attempt is not None
+        and (output_dir / f"review-attempt-{attempt}" / "provider.json").exists()
+    ):
+        attempt_dir = output_dir / f"review-attempt-{attempt}"
+        try:
+            provider = json.loads((attempt_dir / "provider.json").read_text(encoding="utf-8"))
+            github_required = provider.get("approvalMode") == "github"
+            if github_required:
+                expected_commit = json.loads(
+                    (attempt_dir / "source.json").read_text(encoding="utf-8")
+                ).get("head")
+        except (OSError, ValueError, AttributeError):
+            return "pending"
     for record in load_review_approvals(output_dir):
         if record.get("policyId") != policy_id:
             continue
         if attempt is not None and record.get("attempt", 1) != attempt:
             continue
-        if not record.get("actor") or not record.get("evidence"):
+        actor, evidence = record.get("actor"), record.get("evidence")
+        covered_ids = record.get("findingIds")
+        if github_required:
+            verified = record.get("verification")
+            if (
+                not isinstance(verified, dict)
+                or not expected_commit
+                or any(
+                    (
+                        verified.get("mode") != "github",
+                        verified.get("actor") != actor,
+                        verified.get("reviewUrl") != evidence,
+                        verified.get("decision") != record.get("decision"),
+                        verified.get("commit") != expected_commit,
+                    )
+                )
+            ):
+                continue
+        if (
+            not isinstance(actor, str)
+            or not actor.strip()
+            or _is_ai_actor(actor)
+            or not isinstance(evidence, str)
+            or not evidence.strip()
+            or not isinstance(covered_ids, list)
+            or any(not isinstance(item, str) or not item for item in covered_ids)
+        ):
             continue
         if record.get("decision") == "rejected":
             return "rejected"
         if record.get("decision") == "approved":
-            covered = set(record.get("findingIds", []))
+            covered = set(covered_ids)
             if required is None or required <= covered:
                 approved = True
     return "approved" if approved else "pending"

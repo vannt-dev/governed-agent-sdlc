@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -104,6 +106,8 @@ class ParseOcrOutputTests(unittest.TestCase):
             "not json": "parse",
             "[]": "schema",
             json.dumps({"comments": []}): "schema",
+            json.dumps({"status": []}): "schema",
+            json.dumps({"status": {"unexpected": True}}): "schema",
             json.dumps({"status": "success", "comments": {}}): "schema",
             json.dumps({"status": "success", "comments": [{"path": "a"}]}): "schema",
             json.dumps({"status": "failed", "message": "quota"}): "exit",
@@ -112,6 +116,17 @@ class ParseOcrOutputTests(unittest.TestCase):
             with self.subTest(output=output), self.assertRaises(ReviewProviderError) as ctx:
                 parse_ocr_output(output)
             self.assertEqual(kind, ctx.exception.kind)
+
+    def test_error_messages_are_redacted_before_they_reach_policy_or_cli(self) -> None:
+        for status in ("failed", "partial"):
+            with self.subTest(status=status), self.assertRaises(ReviewProviderError) as ctx:
+                parse_ocr_output(
+                    json.dumps(
+                        {"status": status, "message": "token=abcdefghijklmno", "comments": []}
+                    )
+                )
+            self.assertNotIn("abcdefghijklmno", str(ctx.exception))
+            self.assertNotIn("abcdefghijklmno", json.dumps(ctx.exception.to_dict()))
 
 
 class HelperTests(unittest.TestCase):
@@ -149,7 +164,7 @@ class OpenCodeReviewProviderTests(unittest.TestCase):
     ) -> ReviewResult:
         with (
             patch("shutil.which", return_value="/bin/mock_ocr"),
-            patch("subprocess.run") as mock_run,
+            patch("agentkit.review.run_bounded") as mock_run,
         ):
             if isinstance(outcome, Exception):
                 mock_run.side_effect = outcome
@@ -227,20 +242,60 @@ class OpenCodeReviewProviderTests(unittest.TestCase):
         }
         with (
             patch("shutil.which", return_value="/bin/mock_ocr"),
-            patch("subprocess.run", return_value=_proc(json.dumps(preview))) as mock_run,
+            patch(
+                "agentkit.review.run_bounded", return_value=_proc(json.dumps(preview))
+            ) as mock_run,
         ):
             result = self.provider.delegate_preview(self.context)
         self.assertEqual(preview, result)
         self.assertEqual(["delegate", "preview"], mock_run.call_args[0][0][1:3])
         with (
             patch("shutil.which", return_value="/bin/mock_ocr"),
-            patch("subprocess.run", return_value=_proc(json.dumps({"mode": "workspace"}))),
+            patch(
+                "agentkit.review.run_bounded", return_value=_proc(json.dumps({"mode": "workspace"}))
+            ),
             self.assertRaises(ReviewProviderError),
         ):
             self.provider.delegate_preview(self.context)
 
+    def test_delegate_preview_validates_entries_and_accepts_nil_slices(self) -> None:
+        for value in ([None], [{}], [3], {"path": "a.py"}):
+            with (
+                self.subTest(value=value),
+                patch.object(self.provider, "is_available", return_value=True),
+                patch.object(
+                    self.provider,
+                    "_run",
+                    return_value=_proc(json.dumps({"reviewable_files": value})),
+                ),
+                self.assertRaises(ReviewProviderError),
+            ):
+                self.provider.delegate_preview(self.context)
+        with (
+            patch.object(self.provider, "is_available", return_value=True),
+            patch.object(
+                self.provider,
+                "_run",
+                return_value=_proc('{"reviewable_files": null, "excluded_files": null}'),
+            ),
+        ):
+            self.assertEqual([], self.provider.delegate_preview(self.context)["reviewable_files"])
+
 
 class EvidenceIntegrityTests(unittest.TestCase):
+    def test_normalized_findings_and_policy_text_are_redacted_at_storage_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            finding = NormalizedFinding(
+                "f", "mock", "low", "other", "a.py", 'token="abcdefghijklmno"'
+            )
+            result = ReviewResult("mock", False, (finding,))
+            written = write_review_evidence(
+                Path(temp), result, PolicyEngine().evaluate(result.findings)
+            )
+            for path in written.values():
+                self.assertNotIn("abcdefghijklmno", path.read_text(encoding="utf-8"))
+                json.loads(path.read_text(encoding="utf-8"))
+
     @staticmethod
     def _result() -> ReviewResult:
         finding = NormalizedFinding("f-1", "ocr", "low", "other", "a.py", "msg", 3)
@@ -286,6 +341,72 @@ class EvidenceIntegrityTests(unittest.TestCase):
             problems = validate_review_evidence(out)
             self.assertTrue(any("severity" in p for p in problems))
             self.assertTrue(any("line" in p for p in problems))
+
+
+class BoundedProcessTests(unittest.TestCase):
+    def test_real_child_output_is_utf8_and_both_streams_are_limited(self) -> None:
+        provider = OpenCodeReviewProvider(executable=sys.executable)
+        result = provider._run(
+            ["-c", "import sys; sys.stdout.buffer.write('Tiếng Việt'.encode('utf-8'))"], 5
+        )
+        self.assertEqual("Tiếng Việt", result.stdout)
+        for stream in ("stdout", "stderr"):
+            with (
+                self.subTest(stream=stream),
+                patch("agentkit.review.MAX_OUTPUT_BYTES", 1024),
+                self.assertRaises(ReviewProviderError) as ctx,
+            ):
+                provider._run(
+                    [
+                        "-c",
+                        f"import sys,time; sys.{stream}.write('x' * 131072); "
+                        f"sys.{stream}.flush(); time.sleep(60)",
+                    ],
+                    5,
+                )
+            self.assertEqual("output-too-large", ctx.exception.kind)
+
+    def test_real_child_is_stopped_on_timeout(self) -> None:
+        provider = OpenCodeReviewProvider(executable=sys.executable)
+        with self.assertRaises(ReviewProviderError) as ctx:
+            provider._run(["-c", "import time; time.sleep(60)"], 1)
+        self.assertEqual("timeout", ctx.exception.kind)
+
+
+@unittest.skipUnless(
+    os.environ.get("OCR_SMOKE_BIN"), "Set OCR_SMOKE_BIN to an installed OCR binary"
+)
+class RealOcrSmokeTests(unittest.TestCase):
+    def test_preview_selects_real_git_changes_without_an_llm(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="agentkit-real-ocr-") as temp:
+            root = Path(temp).resolve()
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            subprocess.run(
+                [
+                    "git",
+                    "-c",
+                    "user.name=Smoke",
+                    "-c",
+                    "user.email=smoke@example.invalid",
+                    "-c",
+                    "commit.gpgsign=false",
+                    "commit",
+                    "--allow-empty",
+                    "-qm",
+                    "fixture",
+                ],
+                cwd=root,
+                check=True,
+                capture_output=True,
+            )
+            provider = OpenCodeReviewProvider(executable=os.environ["OCR_SMOKE_BIN"])
+            context = ReviewContext("smoke", root)
+            self.assertEqual([], provider.delegate_preview(context)["reviewable_files"])
+            (root / "sample.py").write_text(
+                "def greet(name):\n    return 'Hello ' + name\n", encoding="utf-8"
+            )
+            preview = provider.delegate_preview(context)
+            self.assertEqual(["sample.py"], [item["path"] for item in preview["reviewable_files"]])
 
 
 if __name__ == "__main__":

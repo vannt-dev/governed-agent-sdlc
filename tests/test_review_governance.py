@@ -432,7 +432,7 @@ class ReviewCliTests(unittest.TestCase):
         self.assertEqual(["c1"], data["unresolvedFromPreviousAttempt"])
         runs = self.project / ".agent" / "runs" / "run-d"
         self.assertEqual(
-            {"review-attempt-1", "review-attempt-2", "events.jsonl"},
+            {"review-attempt-1", "review-attempt-2", "events.jsonl", ".run.lock"},
             {p.name for p in runs.iterdir()},
         )
 
@@ -465,6 +465,27 @@ class ReviewCliTests(unittest.TestCase):
         )
 
     def test_requirement_is_passed_to_the_reviewer_as_a_background_file(self) -> None:
+        import subprocess
+
+        subprocess.run(["git", "init", "-q", "-b", "main", str(self.project)], check=True)
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(self.project),
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@example.invalid",
+                "-c",
+                "commit.gpgsign=false",
+                "commit",
+                "--allow-empty",
+                "-qm",
+                "fixture",
+            ],
+            check=True,
+        )
         requirement = Path(self._temp.name) / "req.md"
         requirement.write_text("Users must log in with refresh tokens", encoding="utf-8")
         captured: dict[str, str | None] = {}

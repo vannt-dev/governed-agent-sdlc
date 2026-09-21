@@ -7,6 +7,10 @@ Versioning while its public interfaces remain alpha.
 
 ### Added
 
+- Source-bound review evidence, stale/legacy gate states, process locks and interrupted-attempt recovery.
+- Opt-in artifact completion gates and GitHub PR review verification for human approvals.
+- Host CLI review with validated OCR delegation rules, bounded stdin context, shared version-1 finding fixtures and opt-in semantic evaluations.
+
 - Native Codex adapter generation based on project-scoped `AGENTS.md` discovery.
 - Machine-readable CLI output, safe previews, artifact inspection, and manifest migration support.
 - Artifact-level package verification, lint, type, coverage, and browser-backed site checks.
@@ -22,6 +26,11 @@ Versioning while its public interfaces remain alpha.
 
 ### Changed
 
+- Bind freshness to working-tree file modes as well as content, keep selected Git paths literal, and record Git input timeouts as provider failures.
+- Canonicalize review artifact test paths across Windows short names and macOS symlinks.
+- Malformed OCR statuses produce typed provider errors; both output streams are bounded while running and decoded as UTF-8. Evidence redaction preserves escaped JSON strings.
+- Status and reports refuse incomplete or inconsistent evidence, and invalid stored approval records cannot satisfy a human approval gate.
+- Added an opt-in real OCR preview smoke test using `OCR_SMOKE_BIN`; it needs an installed binary but no LLM.
 - Skipped OCR reviews now remain nonpassing in run, status, and report output (`run`/`status` exit `6`).
 - Review retries reuse their original background when context arguments are omitted and reject changed context before invoking the provider; changed requirements or plans need a new run id.
 - A review provider failure (missing binary, timeout, malformed output) is now a distinct provider
