@@ -4,7 +4,7 @@ import fnmatch
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from agentkit.review import NormalizedFinding
+from agentkit.review import NormalizedFinding, _finding_contract
 
 PolicyAction = Literal[
     "continue",
@@ -199,6 +199,10 @@ def load_policies(
         for key in ("severity", "category", "file_pattern", "reason"):
             if key in item and not isinstance(item[key], str):
                 raise ValueError(f"policies[{index}].{key} must be a string")
+        for key in ("severity", "category"):
+            allowed = _finding_contract()["properties"][key]["enum"]
+            if key in item and item[key] not in allowed:
+                raise ValueError(f"policies[{index}].{key} must be one of: {', '.join(allowed)}")
         rules.append(
             PolicyRule(
                 id=policy_id,
