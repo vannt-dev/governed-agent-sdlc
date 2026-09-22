@@ -68,6 +68,12 @@ class PolicyConfigTests(unittest.TestCase):
             [{"id": "a", "action": "block"}, {"id": "a", "action": "warn"}],
             [{"id": "a", "action": "block", "surprise": 1}],
             [{"id": "a", "action": "block", "severity": 3}],
+            [{"id": "a", "action": "block", "severity": "hgh"}],
+            [{"id": "a", "action": "block", "severity": "HIGH"}],
+            [{"id": "a", "action": "block", "severity": ""}],
+            [{"id": "a", "action": "block", "category": "securty"}],
+            [{"id": "a", "action": "block", "category": "Security"}],
+            [{"id": "a", "action": "block", "category": ""}],
         ]
         for entries in bad:
             with self.subTest(entries=entries), self.assertRaises(ValueError):
@@ -139,6 +145,8 @@ severity = "high"
             "[remediation]\nmax_attempts = 0",
             '[remediation]\nenabled = "yes"',
             '[[policies]]\nid = "a"\naction = "explode"',
+            '[[policies]]\nid = "a"\naction = "block"\nseverity = "hgh"',
+            '[[policies]]\nid = "a"\naction = "block"\ncategory = "Security"',
         ]
         for extra in bad:
             with (
