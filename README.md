@@ -45,6 +45,19 @@ agentkit --version
 agentkit doctor
 ```
 
+Upgrade an existing installation to this release:
+
+```bash
+python -m pip install --upgrade governed-agent-sdlc==0.2.0
+agentkit --version
+agentkit doctor
+```
+
+Version 0.2.0 adds source-bound review gates and OCR/host CLI integration. Correct invalid
+severity/category filters before upgrading, and rerun reviews whose evidence predates source
+fingerprints. Initialization remains additive; upgrading the Python package does not overwrite
+project configuration. See [release notes](CHANGELOG.md) for the full changes.
+
 For local development:
 
 ```bash
