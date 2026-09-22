@@ -2,16 +2,21 @@
 schema_version = 1
 id = "REVIEW-20260921150253-source-review-hardening"
 kind = "review"
-status = "draft"
+status = "completed"
 task_level = "high_risk"
 created_at = "2026-09-21T15:02:53Z"
-updated_at = "2026-09-21T15:02:53Z"
+updated_at = "2026-09-22T00:13:12Z"
 repositories = ["root"]
 protected_areas = ["authorization"]
 parent = "TASK-20260921150002-source-review-hardening"
+
+[approval]
+approved_by = "workspace-user"
+approved_at = "2026-09-22T00:13:12Z"
+evidence = "User explicitly authorized merging ready PRs and fixing issues, then approved using a separate reviewer for PR #12 and merging it if the review passes. This records execution authorization and conditional merge approval, not a fabricated human review verdict."
 +++
 
-# Source review hardening: review handoff
+# Source review hardening: independent review
 
 The implementation adds strict enum validation of optional severity/category policy filters,
 using the shared finding schema. Loader tests reject typo, uppercase, and empty strings;
@@ -19,9 +24,28 @@ manifest tests confirm configuration loading fails rather than allowing the rule
 Default policies, valid custom policy replacement, providers and artifact enforcement defaults
 remain compatible. Current local validation passes with 88% coverage.
 
-The implementing agent inspected the diff and ran deterministic regression/full-suite checks.
-No separate reviewer or live semantic model has reviewed this patch. This draft must not be
-treated as a completed independent review, a passing semantic gate, or permission to publish.
+The implementing agent's earlier checks were not an independent review. On 2026-09-22,
+the separately invoked reviewer `/root/governed_review` reviewed commit
+`89575368d85fc39d7deb4ce5d7e480d721ef855e` against base
+`796ef174db5a75297d56402ae43401a4c2c391fc` and returned **no actionable findings**.
+
+The reviewer inspected the policy patch, regression tests, manifest/CLI callers, shared finding
+and project schemas, cached contract loading, packaging configuration, and workflow artifacts.
+Invalid filters fail at configuration loading; canonical and omitted filters preserve their
+existing behavior. Default policies and custom-policy replacement semantics remain unchanged.
+No import cycle or missing packaged resource was identified.
+
+Independent evidence:
+
+- `agentkit validate`: zero errors and warnings.
+- `python -m unittest discover -s tests -p test_review_governance.py -v`: 33 passed.
+- In-memory probe: all 35 canonical severity/category combinations and an omitted-filter
+  catch-all passed.
+
+The reviewer made no source or Git changes. The reviewer did not independently run the full
+suite, install a wheel, or invoke a configured external review provider. This source review is
+not a human review verdict or a recorded runtime semantic gate. Subsequent changes in this
+delivery only record review/QA evidence; no production or test source changed after review.
 
 ## Continuation verification (2026-09-22, Asia/Bangkok)
 
@@ -35,5 +59,5 @@ treated as a completed independent review, a passing semantic gate, or permissio
 
 The first sandboxed unittest run failed on temporary-directory permissions. The approved
 rerun outside the sandbox passed. No coverage percentage was remeasured in this continuation.
-These deterministic checks do not replace independent review. QA cannot be opened until
-this review satisfies its parent gate; the validator correctly rejects premature QA artifacts.
+These earlier deterministic checks are separate from the independent review recorded above.
+The review is now complete and supplies the parent gate for the associated QA record.
