@@ -3,7 +3,12 @@
 All notable changes to Governed Agent SDLC are documented here. The project follows Semantic
 Versioning while its public interfaces remain alpha.
 
-## [Unreleased]
+## [0.3.0] - 2026-09-24
+
+### Upgrade notes
+
+- Findings files evaluated with `review evaluate` now use the project's `[[policies]]`; stricter project rules can change the exit code.
+- A missing or unknown finding severity now normalizes to `medium` (warns under the default policies) instead of `info`.
 
 ### Fixed
 
@@ -60,5 +65,6 @@ Versioning while its public interfaces remain alpha.
   deterministic safety hooks, cross-platform CI, GitHub Pages site, GitHub Release automation, and
   PyPI Trusted Publishing.
 
+[0.3.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/vannt-dev/governed-agent-sdlc/releases/tag/v0.1.0
