@@ -229,10 +229,11 @@ class ReviewProvider(Protocol):
 class FindingNormalizer:
     @staticmethod
     def normalize_severity(raw: str | None) -> str:
+        # A missing or unknown severity stays visible (medium) rather than silently becoming info.
         if not raw:
-            return "info"
+            return "medium"
         normalized = raw.strip().lower()
-        return SEVERITY_MAP.get(normalized, "info")
+        return SEVERITY_MAP.get(normalized, "medium")
 
     @staticmethod
     def normalize_category(raw: str | None) -> str:

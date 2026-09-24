@@ -17,7 +17,7 @@
 - `agentkit review approve --run-id ID --policy POLICY --actor HUMAN --evidence URL [--attempt N] [--reject]`
 - `agentkit review status --run-id ID [--attempt N]`
 - `agentkit review preview [--from REF] [--to REF] [--commit REF]`
-- `agentkit review evaluate FINDINGS [--output-dir DIR]`
+- `agentkit review evaluate FINDINGS [--output-dir DIR]` (applies the project's `[[policies]]`, or the defaults outside a project)
 
 ## Governed review
 

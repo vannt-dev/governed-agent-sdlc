@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from agentkit.approval import approval_status, record_review_approval
 from agentkit.cli import main
-from agentkit.config import ConfigError, load_config
+from agentkit.config import ConfigError, load_config, manifest_path
 from agentkit.policy import (
     GovernanceDecision,
     PolicyEngine,
@@ -546,6 +546,49 @@ class ReviewCliTests(unittest.TestCase):
         code, data = self._cli("review", "report", "--run-id", "skipped-run")
         self.assertEqual(EXIT_OK, code)
         self.assertEqual("skipped", data["latestGate"]["status"])
+
+    def test_evaluate_applies_the_project_policies(self) -> None:
+        manifest = manifest_path(self.project)
+        manifest.write_text(
+            manifest.read_text(encoding="utf-8")
+            + '\n[[policies]]\nid = "medium-block"\naction = "block"\nseverity = "medium"\n',
+            encoding="utf-8",
+        )
+        self._write_findings(
+            [
+                {
+                    "id": "f-1",
+                    "severity": "medium",
+                    "category": "other",
+                    "file": "m.py",
+                    "message": "x",
+                }
+            ]
+        )
+        code, data = self._cli("review", "evaluate", str(self.findings))
+        self.assertEqual(EXIT_BLOCKED, code)
+        self.assertEqual("block", data["decision"])
+
+    def test_evaluate_uses_the_defaults_outside_a_project(self) -> None:
+        self._write_findings(
+            [
+                {
+                    "id": "f-1",
+                    "severity": "critical",
+                    "category": "security",
+                    "file": "m.py",
+                    "message": "x",
+                }
+            ]
+        )
+        out = io.StringIO()
+        with (
+            patch("agentkit.cli.find_project_root", side_effect=ConfigError("no project")),
+            redirect_stdout(out),
+        ):
+            code = main(["review", "evaluate", str(self.findings), "--format", "json"])
+        self.assertEqual(EXIT_BLOCKED, code)
+        self.assertEqual("block", json.loads(out.getvalue())["decision"])
 
     def test_evaluate_still_works_and_refuses_to_overwrite_evidence(self) -> None:
         self._write_findings(

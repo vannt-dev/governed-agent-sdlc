@@ -27,7 +27,12 @@ class FindingNormalizerTests(unittest.TestCase):
         self.assertEqual(FindingNormalizer.normalize_severity("warn"), "medium")
         self.assertEqual(FindingNormalizer.normalize_severity("minor"), "low")
         self.assertEqual(FindingNormalizer.normalize_severity("suggestion"), "info")
-        self.assertEqual(FindingNormalizer.normalize_severity("unknown_severity"), "info")
+        # Unknown or missing severities stay visible (medium), matching the OCR adapter and Junto.
+        self.assertEqual(FindingNormalizer.normalize_severity("unknown_severity"), "medium")
+        self.assertEqual(FindingNormalizer.normalize_severity(None), "medium")
+        self.assertEqual(
+            FindingNormalizer.normalize({"file": "a", "message": "m"}).severity, "medium"
+        )
 
     def test_normalizes_category_variations(self) -> None:
         self.assertEqual(FindingNormalizer.normalize_category("vuln"), "security")
