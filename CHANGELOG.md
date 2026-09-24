@@ -3,6 +3,13 @@
 All notable changes to Governed Agent SDLC are documented here. The project follows Semantic
 Versioning while its public interfaces remain alpha.
 
+## [Unreleased]
+
+### Fixed
+
+- `review evaluate` now applies the project's configured `[[policies]]` instead of always using the defaults.
+- File findings with a missing or unknown severity normalize to `medium`, like OCR findings, instead of non-blocking `info`.
+
 ## [0.2.0] - 2026-09-22
 
 ### Upgrade notes

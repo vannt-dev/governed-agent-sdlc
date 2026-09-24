@@ -439,8 +439,19 @@ def _emit(data: dict[str, Any], output_format: str, text: str) -> None:
     print(json.dumps(data, sort_keys=True) if output_format == "json" else text)
 
 
+def _project_policies() -> list[dict[str, Any]]:
+    """Configured `[[policies]]` of the enclosing project; none (the defaults) outside a project."""
+    from agentkit.config import load_config
+
+    try:
+        root = find_project_root()
+    except ConfigError:
+        return []
+    return list(load_config(root).policies)
+
+
 def _review_evaluate(findings_path: Path, output_dir: str | None, output_format: str) -> int:
-    from agentkit.policy import PolicyEngine
+    from agentkit.policy import PolicyEngine, load_policies
     from agentkit.review import (
         FindingNormalizer,
         ReviewResult,
@@ -462,7 +473,7 @@ def _review_evaluate(findings_path: Path, output_dir: str | None, output_format:
         for i, item in enumerate(items)
         if isinstance(item, dict)
     ]
-    engine = PolicyEngine()
+    engine = PolicyEngine(load_policies(_project_policies()))
     decision = engine.evaluate(findings)
 
     if output_dir:
