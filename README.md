@@ -6,6 +6,7 @@
 
 [![Validate](https://github.com/vannt-dev/governed-agent-sdlc/actions/workflows/validate.yml/badge.svg)](https://github.com/vannt-dev/governed-agent-sdlc/actions/workflows/validate.yml)
 [![PyPI](https://img.shields.io/pypi/v/governed-agent-sdlc.svg)](https://pypi.org/project/governed-agent-sdlc/)
+[![PyPI downloads](https://static.pepy.tech/badge/governed-agent-sdlc)](https://pepy.tech/projects/governed-agent-sdlc)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-0b7771)](https://www.python.org/)
 [![MIT License](https://img.shields.io/badge/License-MIT-f06f4f.svg)](LICENSE)
 
