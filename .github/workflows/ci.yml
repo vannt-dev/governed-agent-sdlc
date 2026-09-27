@@ -18,4 +18,4 @@ jobs:
       os: '["ubuntu-latest"]'
       manager: pip
       install-command: python -m pip install -e . && python -m pip install ruff mypy pytest
-      commands: '["ruff format --check .","ruff check .","mypy .","python -m pytest"]'
+      commands: '["ruff format --check .","ruff check .","mypy","python -m pytest"]'

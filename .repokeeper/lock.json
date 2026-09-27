@@ -1,6 +1,6 @@
 {
   "lockVersion": 1,
-  "standard": "1.2.1",
+  "standard": "1.2.2",
   "entries": [
     {
       "id": "block:.gitattributes#editorconfig",
@@ -94,7 +94,7 @@
     {
       "id": "yaml:.github/workflows/ci.yml#[\"jobs\",\"python\"]",
       "module": "ci",
-      "hash": "c3076518d5b346bf41cc55ec75e757db32fb0976235a691e938c9370d30a3d4d",
+      "hash": "2b78b6eae7366b6ef87982697a2c484c4e46d75e63bea211959d4ceceb2a235e",
       "target": {
         "kind": "yaml",
         "path": ".github/workflows/ci.yml",
