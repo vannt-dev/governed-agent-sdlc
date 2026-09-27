@@ -1,0 +1,20 @@
+# Managed by repokeeper (https://github.com/vannt-dev/repokeeper). Edits are reported by `repokeeper check`.
+pre-commit:
+  parallel: true
+  jobs:
+    - name: python:ruff-format
+      glob: "*.py"
+      run: ruff format {staged_files}
+      stage_fixed: true
+    - name: python:ruff-check
+      glob: "*.py"
+      run: ruff check --fix {staged_files}
+      stage_fixed: true
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: npx --yes --package @commitlint/cli@21.2.3 --package @commitlint/config-conventional@21.2.3 -- commitlint --edit {1}
+pre-push:
+  jobs:
+    - name: python:test
+      run: python -m pytest

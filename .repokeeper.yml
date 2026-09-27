@@ -1,0 +1,30 @@
+# repokeeper configuration: https://github.com/vannt-dev/repokeeper
+schema: 1
+standard: 1.2.1
+platform: github
+stacks:
+  - python
+modules:
+  editorconfig: true
+  commits: true
+  hooks: true
+  ci: true
+  release: false
+  deps: true
+  gitignore: true
+  health:
+    license: MIT
+    copyright: 2026 Van Nguyen
+    contact: https://github.com/vannt-dev
+    codeowners:
+      - "@vannt-dev"
+owned:
+  - .github/CODEOWNERS
+  - .github/dependabot.yml
+  - .github/pull_request_template.md
+  - .github/workflows/release.yml
+  - CODE_OF_CONDUCT.md
+  - CONTRIBUTING.md
+  - LICENSE
+  - SECURITY.md
+stack_options: {}
