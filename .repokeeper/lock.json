@@ -1,6 +1,6 @@
 {
   "lockVersion": 1,
-  "standard": "1.2.2",
+  "standard": "1.4.1",
   "entries": [
     {
       "id": "block:.gitattributes#editorconfig",
@@ -76,6 +76,18 @@
       "target": {
         "kind": "file",
         "path": "lefthook.yml"
+      }
+    },
+    {
+      "id": "yaml:.github/workflows/ci.yml#[\"concurrency\"]",
+      "module": "ci",
+      "hash": "1f382fb1b73ab99e2883b98aae10e56692a59ccaaa72d990ff8fdae435f46cd6",
+      "target": {
+        "kind": "yaml",
+        "path": ".github/workflows/ci.yml",
+        "keyPath": [
+          "concurrency"
+        ]
       }
     },
     {
