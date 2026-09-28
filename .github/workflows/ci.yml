@@ -8,6 +8,9 @@ on:
       - main
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   commits:
     uses: vannt-dev/repokeeper/.github/workflows/commitlint.yml@v0
