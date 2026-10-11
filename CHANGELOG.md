@@ -3,7 +3,14 @@
 All notable changes to Governed Agent SDLC are documented here. The project follows Semantic
 Versioning while its public interfaces remain alpha.
 
-## [Unreleased]
+## [0.5.0] - 2026-10-11
+
+### Upgrade notes
+
+- After upgrading the package, run `agentkit update-hooks` and then
+  `agentkit generate claude-code --force` (or `generate codex --force`), in that order.
+- `agentkit artifact new spec` and `agentkit artifact new task` create different sections than
+  before. Artifacts that already exist are not changed and stay valid.
 
 ### Added
 
@@ -124,7 +131,7 @@ Versioning while its public interfaces remain alpha.
   deterministic safety hooks, cross-platform CI, GitHub Pages site, GitHub Release automation, and
   PyPI Trusted Publishing.
 
-[Unreleased]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.4.0...HEAD
+[0.5.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.1.0...v0.2.0

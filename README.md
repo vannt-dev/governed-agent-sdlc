@@ -50,18 +50,19 @@ agentkit doctor
 Upgrade an existing installation to this release:
 
 ```bash
-python -m pip install --upgrade governed-agent-sdlc==0.4.0
+python -m pip install --upgrade governed-agent-sdlc==0.5.0
 agentkit --version
+agentkit update-hooks
+agentkit generate claude-code --force
 agentkit doctor
 ```
 
-Version 0.4.0 stops the credential guards from refusing commands that only mention `env`, lets
-the developer, reviewer, and QA roles change only the completion evidence of a task file, and adds
-a guard that spawns a role only from artifacts that passed their gate. Initialization remains
-additive; upgrading the Python package does not overwrite project configuration, and that includes
-`hooks/`. Copy `hooks/*.py` from this version into an existing project before you run
-`agentkit generate claude-code --force`: the regenerated settings name
-`hooks/guard_role_gate.py`, and a missing guard file fails every subagent spawn closed. See
+Version 0.5.0 adds `agentkit update-hooks`. Upgrading the Python package does not overwrite
+project configuration, and that includes the guards under `hooks/`, so run `update-hooks` to get
+the guards this version ships, and only then regenerate the adapter (`generate codex --force` for
+Codex): regenerated settings can name a guard an older project does not have, and a missing guard
+file fails every tool call it guards closed. `agentkit artifact new spec` and `new task` now start
+from the sections in `core/templates/`; existing artifacts are not touched. See
 [release notes](CHANGELOG.md) for the full changes.
 
 For local development:
