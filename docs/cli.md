@@ -6,6 +6,7 @@
 - `agentkit validate [path] [--format text|json]`
 - `agentkit doctor [path] [--format text|json]`
 - `agentkit generate claude-code|codex [path] [--force] [--dry-run]`
+- `agentkit update-hooks [path] [--dry-run] [--format text|json]`
 - `agentkit migrate [path] [--to-version VERSION] [--dry-run]`
 - `agentkit artifact new KIND SLUG [--path PATH]`
 - `agentkit artifact transition FILE TARGET [--approved-by ACTOR] [--evidence EVIDENCE]`
@@ -19,11 +20,21 @@
 - `agentkit review preview [--from REF] [--to REF] [--commit REF]`
 - `agentkit review evaluate FINDINGS [--output-dir DIR]` (applies the project's `[[policies]]`, or the defaults outside a project)
 
+`update-hooks` replaces the guards under a project's `hooks/` with the ones the installed version
+ships and adds any that are missing; `init` never overwrites that folder. Run it after upgrading
+the package and before `generate claude-code --force`, because regenerated settings can register a
+guard an older project does not have. It reports what it added, updated and left unchanged, and
+leaves files the package does not ship alone.
+
+`artifact new` takes the sections of a spec or a task from `core/templates/` (the project's copy
+first, then the packaged one); other kinds get a generic set of sections.
+
 `validate` and `doctor` also read the instruction files agents follow (`AGENTS.md`, `CLAUDE.md`,
 `.claude/agents/`, `.claude/skills/`, `.codex/agents/`, `core/roles/`) and warn when one names a
 file that does not exist. A reference is a path with a directory or a Markdown link; fenced code
-blocks, placeholders such as `<file>`, and bare file names are not checked. Warnings do not change
-the exit code.
+blocks, placeholders such as `<file>`, and bare file names are not checked. They also warn when
+`.claude/settings.json` registers a guard file that is missing. Warnings do not change the exit
+code.
 
 ## Governed review
 

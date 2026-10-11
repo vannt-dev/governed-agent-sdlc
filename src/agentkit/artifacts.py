@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import re
 import tomllib
 from dataclasses import dataclass
@@ -156,8 +157,7 @@ def create_artifact(root: Path, kind: str, slug: str) -> Path:
         "protected_areas": [],
     }
     heading = "QA" if kind == "qa" else kind.title()
-    body = (
-        f"\n# {heading}: {slug}\n\n"
+    sections = _template_sections(root, kind) or (
         "## Goal\n\n"
         "## Confirmed facts\n\n"
         "## Assumptions\n\n"
@@ -167,13 +167,41 @@ def create_artifact(root: Path, kind: str, slug: str) -> Path:
         "## Acceptance criteria\n\n"
         "## Evidence\n"
     )
-    artifact = Artifact(path, metadata, body)
+    artifact = Artifact(path, metadata, f"\n# {heading}: {slug}\n\n{sections}")
     try:
         with path.open("x", encoding="utf-8", newline="\n") as handle:
             handle.write(serialize_artifact(artifact))
     except FileExistsError as exc:
         raise ArtifactError(f"Artifact already exists: {path}") from exc
     return path
+
+
+def _template_sections(root: Path, kind: str) -> str | None:
+    """Sections of `core/templates/<kind>.md`: the project's copy first, then the packaged one.
+
+    `core/` owns the templates, so a new artifact starts from them instead of from a second list
+    of sections kept here. The template's frontmatter and title are placeholders and are dropped.
+    A kind with no template falls back to the generic sections.
+    """
+    from agentkit.generator import package_root
+
+    candidates = [root / "core" / "templates" / f"{kind}.md"]
+    with contextlib.suppress(FileNotFoundError):
+        candidates.append(package_root() / "core" / "templates" / f"{kind}.md")
+    for path in candidates:
+        try:
+            text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
+        except OSError:
+            continue
+        if text.startswith("+++\n") and "\n+++\n" in text[4:]:
+            text = text[4:].split("\n+++\n", 1)[1]
+        lines = text.strip("\n").split("\n")
+        if lines and lines[0].startswith("# "):
+            lines = lines[1:]
+        sections = "\n".join(lines).strip("\n")
+        if sections:
+            return sections + "\n"
+    return None
 
 
 def _escape(value: str) -> str:

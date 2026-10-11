@@ -3,6 +3,29 @@
 All notable changes to Governed Agent SDLC are documented here. The project follows Semantic
 Versioning while its public interfaces remain alpha.
 
+## [Unreleased]
+
+### Added
+
+- `agentkit update-hooks [path] [--dry-run]` replaces a project's guard hooks with the ones the
+  installed version ships. `init` never overwrites an existing `hooks/`, so this is how an
+  existing project gets new and fixed guards. Files the package does not ship are left alone.
+- `agentkit validate` and `agentkit doctor` warn when `.claude/settings.json` registers a guard
+  file the project does not have.
+
+### Changed
+
+- `agentkit artifact new spec` and `agentkit artifact new task` start from the sections in
+  `core/templates/` (the project's copy first, then the packaged one) instead of a second,
+  generic list kept in the CLI. A new task now has `Write scope`, `Read-only impact scope`,
+  `Dependencies`, `Verification`, and `Completion evidence`. Kinds with no template keep the
+  generic sections.
+
+### Fixed
+
+- `agentkit init` run from a source checkout copied `__pycache__` folders into the new project's
+  `hooks/`.
+
 ## [0.4.0] - 2026-10-11
 
 ### Upgrade notes
@@ -101,6 +124,7 @@ Versioning while its public interfaces remain alpha.
   deterministic safety hooks, cross-platform CI, GitHub Pages site, GitHub Release automation, and
   PyPI Trusted Publishing.
 
+[Unreleased]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.4.0...HEAD
 [0.4.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.1.0...v0.2.0

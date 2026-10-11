@@ -62,6 +62,43 @@ class CliTests(unittest.TestCase):
             self.assertEqual("project", json.loads(output.getvalue())["name"])
             self.assertTrue((project / ".codex" / "config.toml").is_file())
 
+    def test_update_hooks_reports_what_it_changed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp) / "project"
+            self.assertEqual(0, main(["init", str(project), "--adapter", "claude-code"]))
+            (project / "hooks" / "guard_role_gate.py").unlink()
+
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = main(["update-hooks", str(project), "--dry-run", "--format", "json"])
+            self.assertEqual(0, result)
+            preview = json.loads(output.getvalue())
+            self.assertTrue(preview["dry_run"])
+            self.assertEqual(["guard_role_gate.py"], preview["added"])
+            self.assertFalse((project / "hooks" / "guard_role_gate.py").exists())
+
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = main(["update-hooks", str(project)])
+            self.assertEqual(0, result)
+            self.assertIn("1 added, 0 updated", output.getvalue())
+            self.assertTrue((project / "hooks" / "guard_role_gate.py").is_file())
+
+    def test_validate_warns_about_a_registered_guard_that_is_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp) / "project"
+            self.assertEqual(0, main(["init", str(project), "--adapter", "claude-code"]))
+            (project / "hooks" / "guard_role_gate.py").unlink()
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = main(["validate", str(project), "--format", "json"])
+            report = json.loads(output.getvalue())
+            self.assertEqual(0, result)
+            self.assertEqual(1, report["warnings"])
+            message = report["findings"][0]["message"]
+            self.assertIn("hooks/guard_role_gate.py", message)
+            self.assertIn("agentkit update-hooks", message)
+
     def test_validate_doctor_and_migrate_json(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             project = Path(temp) / "project"

@@ -30,7 +30,8 @@ grant an AI permission to approve, merge, release, or retrieve credentials.
 - Six tool-neutral roles: architect, planner, developer, reviewer, QA, and publisher.
 - A structured artifact lifecycle with explicit approval evidence and supersession.
 - A TOML project manifest for repository layout, profiles, commands, and protected areas.
-- A dependency-free Python CLI: `init`, `generate`, `validate`, `doctor`, and artifact commands.
+- A dependency-free Python CLI: `init`, `generate`, `update-hooks`, `validate`, `doctor`, and
+  artifact commands.
 - Claude Code agent generation and safety hooks.
 - Native Codex project configuration and governed role generation.
 - Stack profiles for generic repositories, Python, .NET, and Nuxt.

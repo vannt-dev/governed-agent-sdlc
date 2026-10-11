@@ -24,7 +24,7 @@ from agentkit.config import (
     find_project_root,
 )
 from agentkit.events import emit_event
-from agentkit.generator import generate_claude, generate_codex, install_scaffold
+from agentkit.generator import generate_claude, generate_codex, install_scaffold, update_hooks
 from agentkit.runs import EXIT_PROVIDER_ERROR, GateStatus
 from agentkit.validator import validate_project
 
@@ -55,6 +55,13 @@ def build_parser() -> argparse.ArgumentParser:
     generate.add_argument("--force", action="store_true")
     generate.add_argument("--dry-run", action="store_true")
     _add_format(generate)
+
+    hooks = sub.add_parser(
+        "update-hooks", help="Replace a project's guard hooks with the ones this version ships"
+    )
+    hooks.add_argument("path", nargs="?", default=".")
+    hooks.add_argument("--dry-run", action="store_true")
+    _add_format(hooks)
 
     migrate = sub.add_parser("migrate", help="Safely migrate a project manifest schema")
     migrate.add_argument("path", nargs="?", default=".")
@@ -186,6 +193,16 @@ def main(argv: list[str] | None = None) -> int:
                 args.output_format,
                 f"{'Would generate' if args.dry_run else 'Generated'} {len(generated)} "
                 f"{args.adapter} file(s).",
+            )
+            return 0
+        if args.command == "update-hooks":
+            changes = update_hooks(find_project_root(Path(args.path)), dry_run=args.dry_run)
+            _emit(
+                {"dry_run": args.dry_run, **changes},
+                args.output_format,
+                f"{'Would update' if args.dry_run else 'Updated'} hooks: "
+                f"{len(changes['added'])} added, {len(changes['updated'])} updated, "
+                f"{len(changes['unchanged'])} unchanged.",
             )
             return 0
         if args.command == "migrate":
