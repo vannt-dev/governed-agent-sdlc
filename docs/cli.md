@@ -26,8 +26,9 @@ the package and before `generate claude-code --force`, because regenerated setti
 guard an older project does not have. It reports what it added, updated and left unchanged, and
 leaves files the package does not ship alone.
 
-`artifact new` takes the sections of a spec or a task from `core/templates/` (the project's copy
-first, then the packaged one); other kinds get a generic set of sections.
+`artifact new` takes the sections of every kind from `core/templates/<kind>.md`: the project's
+copy first, then the packaged one, so a project that was initialized before a template existed
+still gets it. The template's own frontmatter and title are placeholders and are not copied.
 
 `validate` and `doctor` also read the instruction files agents follow (`AGENTS.md`, `CLAUDE.md`,
 `.claude/agents/`, `.claude/skills/`, `.codex/agents/`, `core/roles/`) and warn when one names a

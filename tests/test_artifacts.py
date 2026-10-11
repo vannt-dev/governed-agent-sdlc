@@ -6,7 +6,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
 
-from agentkit.artifacts import ArtifactError, create_artifact, parse_artifact, transition
+from agentkit.artifacts import (
+    ARTIFACT_KINDS,
+    ArtifactError,
+    create_artifact,
+    parse_artifact,
+    transition,
+)
 
 
 class ArtifactTests(unittest.TestCase):
@@ -50,9 +56,33 @@ class ArtifactTests(unittest.TestCase):
             self.assertTrue(spec.body.startswith("\n# Spec: Local\n\n## Local section\n"))
             self.assertNotIn("## Risks and required approvals", spec.body)
 
+    def test_plan_review_and_qa_use_their_templates(self) -> None:
+        expected = {
+            "plan": ("## Task graph", "## Ordering rationale"),
+            "review": ("## Scope reviewed", "## Findings", "## Residual risk"),
+            "qa": ("## Environment and subject", "## Unresolved defects"),
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for kind, sections in expected.items():
+                body = parse_artifact(create_artifact(root, kind, "Check")).body
+                for section in sections:
+                    self.assertIn(section, body, kind)
+                self.assertNotIn("## Confirmed facts", body, kind)
+
+    def test_every_artifact_kind_has_a_packaged_template(self) -> None:
+        templates = Path(__file__).resolve().parents[1] / "core" / "templates"
+        for kind in ARTIFACT_KINDS:
+            text = (templates / f"{kind}.md").read_text(encoding="utf-8")
+            self.assertIn(f'kind = "{kind}"', text)
+            self.assertIn('status = "draft"', text)
+
     def test_kind_without_a_template_keeps_the_generic_sections(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
-            review = parse_artifact(create_artifact(Path(temp), "review", "Check"))
+            bare = Path(temp) / "package"
+            (bare / "core").mkdir(parents=True)
+            with patch("agentkit.generator.package_root", return_value=bare):
+                review = parse_artifact(create_artifact(Path(temp), "review", "Check"))
             self.assertTrue(review.body.startswith("\n# Review: Check\n"))
             self.assertIn("## Evidence", review.body)
 
