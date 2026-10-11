@@ -9,7 +9,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash|Read|Glob|Grep",
+        "matcher": "Bash|PowerShell|Read|Glob|Grep",
         "hooks": [
           {
             "type": "command",
@@ -19,7 +19,7 @@
         ]
       },
       {
-        "matcher": "Bash",
+        "matcher": "Bash|PowerShell",
         "hooks": [
           {
             "type": "command",
@@ -29,11 +29,21 @@
         ]
       },
       {
-        "matcher": "Write|Edit",
+        "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
             "command": "uv run --no-project python hooks/guard_role_scope.py",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run --no-project python hooks/guard_role_gate.py",
             "timeout": 10
           }
         ]

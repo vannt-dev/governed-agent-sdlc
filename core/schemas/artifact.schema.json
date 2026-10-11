@@ -12,7 +12,7 @@
     "status": {
       "enum": ["draft", "awaiting_approval", "approved", "active", "completed", "superseded", "archived"]
     },
-    "task_level": { "enum": ["small", "medium", "high_risk"] },
+    "task_level": { "enum": ["small", "mechanical", "medium", "high_risk"] },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" },
     "parent": { "type": "string", "minLength": 1 },

@@ -14,7 +14,7 @@ from agentkit.artifacts import (
 )
 from agentkit.config import ConfigError, ProjectConfig, load_config
 
-TASK_LEVELS = {"small", "medium", "high_risk"}
+TASK_LEVELS = {"small", "mechanical", "medium", "high_risk"}
 APPROVED_HISTORY_STATUSES = {"approved", "active", "completed", "superseded"}
 PARENT_RULES = {
     "plan": ("spec", {"approved", "active", "completed"}, "require_spec"),
@@ -60,6 +60,9 @@ def validate_project(root: Path | None = None) -> list[Finding]:
     findings.extend(parse_findings)
     findings.extend(_validate_artifacts(config, artifacts))
     findings.extend(_validate_review_runs(config.root))
+    from agentkit.instructions import instruction_findings
+
+    findings.extend(instruction_findings(config.root))
     return findings
 
 

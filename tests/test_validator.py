@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 
 from agentkit.artifacts import Artifact, create_artifact, parse_artifact, serialize_artifact
-from agentkit.validator import validate_project
+from agentkit.validator import TASK_LEVELS, validate_project
 
 MANIFEST = """version = 1
 [project]
@@ -36,6 +38,31 @@ class ValidatorTests(unittest.TestCase):
             root = Path(temp)
             (root / "agentkit.toml").write_text(MANIFEST, encoding="utf-8")
             self.assertFalse([f for f in validate_project(root) if f.level == "error"])
+
+    def test_accepts_every_documented_task_level(self) -> None:
+        repository = Path(__file__).resolve().parents[1]
+        policy = tomllib.loads(
+            (repository / "core" / "policies" / "workflow.toml").read_text(encoding="utf-8")
+        )
+        schema = json.loads(
+            (repository / "core" / "schemas" / "artifact.schema.json").read_text(encoding="utf-8")
+        )
+        levels = set(policy["task_levels"])
+        self.assertEqual(levels, TASK_LEVELS)
+        self.assertEqual(levels, set(schema["properties"]["task_level"]["enum"]))
+        self.assertIn("mechanical", levels)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "agentkit.toml").write_text(MANIFEST, encoding="utf-8")
+            path = create_artifact(root, "spec", "rename constant")
+            artifact = parse_artifact(path)
+            metadata = dict(artifact.metadata)
+            metadata["task_level"] = "mechanical"
+            path.write_text(
+                serialize_artifact(Artifact(path, metadata, artifact.body)), encoding="utf-8"
+            )
+            messages = [finding.message for finding in validate_project(root)]
+            self.assertNotIn("Unknown task_level", messages)
 
     def test_rejects_unknown_repository(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

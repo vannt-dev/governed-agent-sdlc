@@ -19,6 +19,12 @@
 - `agentkit review preview [--from REF] [--to REF] [--commit REF]`
 - `agentkit review evaluate FINDINGS [--output-dir DIR]` (applies the project's `[[policies]]`, or the defaults outside a project)
 
+`validate` and `doctor` also read the instruction files agents follow (`AGENTS.md`, `CLAUDE.md`,
+`.claude/agents/`, `.claude/skills/`, `.codex/agents/`, `core/roles/`) and warn when one names a
+file that does not exist. A reference is a path with a directory or a Markdown link; fenced code
+blocks, placeholders such as `<file>`, and bare file names are not checked. Warnings do not change
+the exit code.
+
 ## Governed review
 
 A reviewer produces findings, and governance decides what they mean. `review run` calls the provider,

@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+"""PreToolUse guard: no force push, no direct push to a protected branch, no destructive git.
+
+A protected branch is matched by name (`main`, `master`, `develop`) in every refspec form:
+`origin main`, `HEAD:main`, `x:refs/heads/main`, and a deletion (`:main`). A default branch with
+another name is not covered. `src/agentkit/codex_hook.py` carries the same patterns for Codex.
+"""
+
 from __future__ import annotations
 
 import re

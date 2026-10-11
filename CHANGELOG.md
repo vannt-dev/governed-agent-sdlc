@@ -3,6 +3,42 @@
 All notable changes to Governed Agent SDLC are documented here. The project follows Semantic
 Versioning while its public interfaces remain alpha.
 
+## [Unreleased]
+
+### Upgrade notes
+
+- `agentkit init` never overwrites an existing `hooks/` directory, so a project initialized with an
+  earlier version keeps its old guards. Copy `hooks/*.py` from this version into the project before
+  running `agentkit generate claude-code --force`: the regenerated settings name
+  `hooks/guard_role_gate.py`, and a guard file that is missing fails every subagent spawn closed.
+- The `developer` role is now restricted under `docs/agent/`: it may change only the completion
+  evidence section of an existing task file. `reviewer` and `qa` gain the same right on task files
+  outside their own directories. The main session is not affected.
+- A command that only contains the word `env` is no longer refused. `env` and `printenv` are
+  refused in command position, a secret file is refused when named as a shell word, and
+  `echo`/`printf` are refused when they expand a variable next to a secret name.
+
+### Added
+
+- `hooks/guard_role_gate.py`: a role is spawned only from artifacts that passed their gate in
+  `core/policies/workflow.toml`. It checks the artifacts the spawn prompt names and respects the
+  manifest's `[workflow]` flags. Claude Code only; Codex has no equivalent tool hook.
+- Task level `mechanical` for one uniform edit repeated across many files, with every level defined
+  under `[task_levels]` in `core/policies/workflow.toml`.
+- `agentkit validate` and `agentkit doctor` warn when an agent instruction file names a file that
+  does not exist.
+- The generated Claude Code settings also run the credential and git guards for the `PowerShell`
+  tool, and the role-scope guard for `MultiEdit`.
+
+### Fixed
+
+- The credential guards (Claude Code and Codex) refused ordinary commands that mention a rule:
+  `git commit -m "document env vars"`, `uv run --env-file x pytest`, `npx cross-env ...`,
+  `echo "token refresh done"`, and heredocs whose text names `git credential`. Heredoc bodies are
+  now treated as data, except for the command substitutions an unquoted heredoc still expands.
+- `cat .env` was refused only because it contains the word `env`; secret files are now matched as
+  files.
+
 ## [0.3.0] - 2026-09-24
 
 ### Upgrade notes
@@ -65,6 +101,7 @@ Versioning while its public interfaces remain alpha.
   deterministic safety hooks, cross-platform CI, GitHub Pages site, GitHub Release automation, and
   PyPI Trusted Publishing.
 
+[Unreleased]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.3.0...HEAD
 [0.3.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/vannt-dev/governed-agent-sdlc/releases/tag/v0.1.0
