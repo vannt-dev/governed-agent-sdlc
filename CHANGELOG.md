@@ -3,6 +3,23 @@
 All notable changes to Governed Agent SDLC are documented here. The project follows Semantic
 Versioning while its public interfaces remain alpha.
 
+## [Unreleased]
+
+### Added
+
+- Templates for plans, reviews, and QA records under `core/templates/`, with the sections this
+  project's own records settled on: a plan has `Outcome`, `Preconditions`, `Task graph`,
+  `Ordering rationale`, `Verification`, and `Risks and required approvals`; a review has
+  `Outcome`, `Scope reviewed`, `Findings`, `Missing tests`, `Verification evidence`, and
+  `Residual risk`; a QA record has `Outcome`, `Environment and subject`,
+  `Verification evidence`, `Unresolved defects`, and `Residual risks and untested areas`.
+
+### Changed
+
+- `agentkit artifact new plan`, `new review`, and `new qa` start from those templates instead of
+  the generic sections. A project without its own copy of a template gets the packaged one.
+  Artifacts that already exist are not changed.
+
 ## [0.5.0] - 2026-10-11
 
 ### Upgrade notes
@@ -131,6 +148,7 @@ Versioning while its public interfaces remain alpha.
   deterministic safety hooks, cross-platform CI, GitHub Pages site, GitHub Release automation, and
   PyPI Trusted Publishing.
 
+[Unreleased]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.5.0...HEAD
 [0.5.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.2.0...v0.3.0
