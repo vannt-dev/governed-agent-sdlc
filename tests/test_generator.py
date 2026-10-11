@@ -35,6 +35,31 @@ class GeneratorTests(unittest.TestCase):
             self.assertIn("agentkit.toml", developer)
             self.assertIn(".agent/project.toml", developer)
 
+    def test_generated_claude_settings_register_every_guard(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            generate_claude(root)
+            settings = json.loads((root / ".claude" / "settings.json").read_text(encoding="utf-8"))
+            commands = {
+                entry["matcher"]: entry["hooks"][0]["command"]
+                for entry in settings["hooks"]["PreToolUse"]
+            }
+            self.assertIn("guard_credentials.py", commands["Bash|PowerShell|Read|Glob|Grep"])
+            self.assertIn("guard_git.py", commands["Bash|PowerShell"])
+            self.assertIn("guard_role_scope.py", commands["Write|Edit|MultiEdit"])
+            self.assertIn("guard_role_gate.py", commands["Agent|Task"])
+
+    def test_committed_claude_settings_match_the_generator(self) -> None:
+        repository = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            generate_claude(root)
+            generated = json.loads((root / ".claude" / "settings.json").read_text(encoding="utf-8"))
+        committed = json.loads(
+            (repository / ".claude" / "settings.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(generated, committed)
+
     def test_generate_codex_creates_project_config_and_roles(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

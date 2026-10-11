@@ -146,6 +146,8 @@ are restricted to Markdown files below the active project's `docs/agent/` direct
 - `hooks/` enforce deterministic safety rules. Prompts explain behavior but are not security controls.
 - Hook input is fail-closed: malformed input is denied, as are credential paths/environment dumps,
   force pushes, and direct protected-branch refspecs.
+- Hooks also hold the workflow: a role is spawned only from artifacts that passed their gate, and a
+  role that does not own a task file may change only its completion evidence.
 - `docs/agent/` holds project artifacts, not hidden agent memory.
 
 See [Architecture](docs/architecture.md), [Workflow](docs/workflow.md), and

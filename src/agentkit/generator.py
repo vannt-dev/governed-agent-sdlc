@@ -22,6 +22,15 @@ ROLE_DESCRIPTIONS = {
     "publisher": "Publish only after review, QA, and human approval.",
 }
 
+# Tool matcher -> guard script under hooks/. PowerShell is the shell tool on Windows; MultiEdit and
+# Task are the names older Claude Code versions use for multi-part edits and subagent spawns.
+CLAUDE_GUARDS = (
+    ("Bash|PowerShell|Read|Glob|Grep", "guard_credentials.py"),
+    ("Bash|PowerShell", "guard_git.py"),
+    ("Write|Edit|MultiEdit", "guard_role_scope.py"),
+    ("Agent|Task", "guard_role_gate.py"),
+)
+
 AGENT_INSTRUCTIONS = """# Agent Instructions
 
 Read `agentkit.toml` or `.agent/project.toml` before acting. Treat `core/` as the canonical source
@@ -74,35 +83,16 @@ Stay within the role's declared authority and produce the required artifact evid
             "hooks": {
                 "PreToolUse": [
                     {
-                        "matcher": "Bash|Read|Glob|Grep",
+                        "matcher": matcher,
                         "hooks": [
                             {
                                 "type": "command",
-                                "command": "uv run --no-project python hooks/guard_credentials.py",
+                                "command": f"uv run --no-project python hooks/{script}",
                                 "timeout": 10,
                             }
                         ],
-                    },
-                    {
-                        "matcher": "Bash",
-                        "hooks": [
-                            {
-                                "type": "command",
-                                "command": "uv run --no-project python hooks/guard_git.py",
-                                "timeout": 10,
-                            }
-                        ],
-                    },
-                    {
-                        "matcher": "Write|Edit",
-                        "hooks": [
-                            {
-                                "type": "command",
-                                "command": "uv run --no-project python hooks/guard_role_scope.py",
-                                "timeout": 10,
-                            }
-                        ],
-                    },
+                    }
+                    for matcher, script in CLAUDE_GUARDS
                 ]
             },
         }

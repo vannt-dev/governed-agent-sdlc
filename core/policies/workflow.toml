@@ -19,3 +19,19 @@ review_requires = ["task.completed"]
 qa_requires = ["review.completed"]
 publish_requires = ["qa.completed", "human.publish_approval"]
 
+# A level is set from what the change does, not from where its files live.
+[task_levels]
+small = "Low-risk change to text, configuration, or presentation."
+mechanical = """
+One uniform edit repeated across many files (a rename, a constant substitution, import order,
+formatting) with no change to behavior, contracts, or data. Breadth is not risk: it stays
+mechanical however many files or protected areas it crosses. A site that needs a judgment call
+instead of the same edit is split out and classified on its own.
+"""
+medium = "Normal feature or fix."
+high_risk = """
+Changes what a protected area does: after the change an outcome there can differ (who may see
+what, what is stored, what is charged). Editing files that merely live in a protected area is not
+high risk.
+"""
+

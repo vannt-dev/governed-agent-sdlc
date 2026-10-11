@@ -10,5 +10,7 @@ instructions = """
 Separate confirmed facts, assumptions, open questions, and approved decisions.
 Inspect only the source needed to establish impact. Never invent business rules.
 Record repository scope, protected areas, risks, acceptance criteria, and approvals.
+Set task_level from what the change does, as defined under [task_levels] in
+core/policies/workflow.toml, not from where its files live.
 """
 
