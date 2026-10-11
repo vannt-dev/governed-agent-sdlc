@@ -49,15 +49,19 @@ agentkit doctor
 Upgrade an existing installation to this release:
 
 ```bash
-python -m pip install --upgrade governed-agent-sdlc==0.3.0
+python -m pip install --upgrade governed-agent-sdlc==0.4.0
 agentkit --version
 agentkit doctor
 ```
 
-Version 0.3.0 makes `review evaluate` apply the project's `[[policies]]` and treats findings with
-a missing or unknown severity as `medium`. Give file findings canonical severities before
-upgrading if you relied on unknown values passing as `info`. Initialization remains additive; upgrading the Python package does not overwrite
-project configuration. See [release notes](CHANGELOG.md) for the full changes.
+Version 0.4.0 stops the credential guards from refusing commands that only mention `env`, lets
+the developer, reviewer, and QA roles change only the completion evidence of a task file, and adds
+a guard that spawns a role only from artifacts that passed their gate. Initialization remains
+additive; upgrading the Python package does not overwrite project configuration, and that includes
+`hooks/`. Copy `hooks/*.py` from this version into an existing project before you run
+`agentkit generate claude-code --force`: the regenerated settings name
+`hooks/guard_role_gate.py`, and a missing guard file fails every subagent spawn closed. See
+[release notes](CHANGELOG.md) for the full changes.
 
 For local development:
 
@@ -155,7 +159,7 @@ See [Architecture](docs/architecture.md), [Workflow](docs/workflow.md), and
 
 ## Maturity
 
-Version 0.1.1 is an alpha. Claude Code and Codex consume the same core contracts rather than
+The project is an alpha. Claude Code and Codex consume the same core contracts rather than
 introducing parallel policy files.
 
 See [CHANGELOG.md](CHANGELOG.md) for release history and upgrade notes.
