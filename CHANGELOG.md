@@ -3,7 +3,12 @@
 All notable changes to Governed Agent SDLC are documented here. The project follows Semantic
 Versioning while its public interfaces remain alpha.
 
-## [Unreleased]
+## [0.6.0] - 2026-10-12
+
+### Upgrade notes
+
+- `agentkit artifact new plan`, `new review`, and `new qa` create different sections than before.
+  Artifacts that already exist are not changed and stay valid.
 
 ### Added
 
@@ -148,7 +153,7 @@ Versioning while its public interfaces remain alpha.
   deterministic safety hooks, cross-platform CI, GitHub Pages site, GitHub Release automation, and
   PyPI Trusted Publishing.
 
-[Unreleased]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.5.0...HEAD
+[0.6.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.2.0...v0.3.0

@@ -50,19 +50,20 @@ agentkit doctor
 Upgrade an existing installation to this release:
 
 ```bash
-python -m pip install --upgrade governed-agent-sdlc==0.5.0
+python -m pip install --upgrade governed-agent-sdlc==0.6.0
 agentkit --version
 agentkit update-hooks
 agentkit generate claude-code --force
 agentkit doctor
 ```
 
-Version 0.5.0 adds `agentkit update-hooks`. Upgrading the Python package does not overwrite
-project configuration, and that includes the guards under `hooks/`, so run `update-hooks` to get
-the guards this version ships, and only then regenerate the adapter (`generate codex --force` for
-Codex): regenerated settings can name a guard an older project does not have, and a missing guard
-file fails every tool call it guards closed. `agentkit artifact new spec` and `new task` now start
-from the sections in `core/templates/`; existing artifacts are not touched. See
+Version 0.6.0 adds templates for plans, reviews, and QA records, so `agentkit artifact new`
+starts every kind from the sections in `core/templates/`. A project that has no copy of a template
+gets the packaged one; existing artifacts are not touched. Upgrading the Python package does not
+overwrite project configuration, and that includes the guards under `hooks/`, so run
+`update-hooks` to get the guards this version ships, and only then regenerate the adapter
+(`generate codex --force` for Codex): regenerated settings can name a guard an older project does
+not have, and a missing guard file fails every tool call it guards closed. See
 [release notes](CHANGELOG.md) for the full changes.
 
 For local development:
