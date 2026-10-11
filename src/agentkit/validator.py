@@ -60,9 +60,10 @@ def validate_project(root: Path | None = None) -> list[Finding]:
     findings.extend(parse_findings)
     findings.extend(_validate_artifacts(config, artifacts))
     findings.extend(_validate_review_runs(config.root))
-    from agentkit.instructions import instruction_findings
+    from agentkit.instructions import hook_registration_findings, instruction_findings
 
     findings.extend(instruction_findings(config.root))
+    findings.extend(hook_registration_findings(config.root))
     return findings
 
 

@@ -24,6 +24,38 @@ class ArtifactTests(unittest.TestCase):
             self.assertEqual(root / "docs" / "agent" / "qa", path.parent)
             self.assertTrue(parse_artifact(path).body.startswith("\n# QA: Release Candidate\n"))
 
+    def test_new_task_and_spec_use_the_core_templates(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            task = parse_artifact(create_artifact(root, "task", "Add Search"))
+            self.assertTrue(task.body.startswith("\n# Task: Add Search\n"))
+            for section in ("## Write scope", "## Verification", "## Completion evidence"):
+                self.assertIn(section, task.body)
+            self.assertNotIn("YYYYMMDD", task.body)
+            self.assertNotIn("parent", task.metadata)
+            spec = parse_artifact(create_artifact(root, "spec", "Add Search"))
+            self.assertTrue(spec.body.startswith("\n# Spec: Add Search\n\n## Goal\n"))
+            self.assertIn("## Risks and required approvals", spec.body)
+            self.assertNotIn("# Specification", spec.body)
+
+    def test_project_template_wins_over_the_packaged_one(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            template = root / "core" / "templates" / "spec.md"
+            template.parent.mkdir(parents=True)
+            template.write_text(
+                '+++\nkind = "spec"\n+++\n\n# Specification\n\n## Local section\n', encoding="utf-8"
+            )
+            spec = parse_artifact(create_artifact(root, "spec", "Local"))
+            self.assertTrue(spec.body.startswith("\n# Spec: Local\n\n## Local section\n"))
+            self.assertNotIn("## Risks and required approvals", spec.body)
+
+    def test_kind_without_a_template_keeps_the_generic_sections(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            review = parse_artifact(create_artifact(Path(temp), "review", "Check"))
+            self.assertTrue(review.body.startswith("\n# Review: Check\n"))
+            self.assertIn("## Evidence", review.body)
+
     def test_approval_requires_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             path = create_artifact(Path(temp), "spec", "Approval")

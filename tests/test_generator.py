@@ -5,8 +5,9 @@ import tempfile
 import tomllib
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from agentkit.generator import generate_claude, generate_codex, install_scaffold
+from agentkit.generator import generate_claude, generate_codex, install_scaffold, update_hooks
 
 
 class GeneratorTests(unittest.TestCase):
@@ -34,6 +35,57 @@ class GeneratorTests(unittest.TestCase):
             developer = (root / ".claude" / "agents" / "developer.md").read_text(encoding="utf-8")
             self.assertIn("agentkit.toml", developer)
             self.assertIn(".agent/project.toml", developer)
+
+    def test_scaffold_leaves_bytecode_caches_behind(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "source"
+            for folder in ("core", "hooks", "profiles"):
+                (source / folder).mkdir(parents=True)
+            (source / "hooks" / "guard_git.py").write_text("print('guard')\n", encoding="utf-8")
+            cache = source / "hooks" / "__pycache__"
+            cache.mkdir()
+            (cache / "guard_git.cpython-312.pyc").write_bytes(b"\x00")
+            (source / "hooks" / "stray.pyc").write_bytes(b"\x00")
+            project = Path(temp) / "project"
+            with patch("agentkit.generator.package_root", return_value=source):
+                install_scaffold(project, name="fixture")
+            self.assertTrue((project / "hooks" / "guard_git.py").is_file())
+            self.assertFalse((project / "hooks" / "__pycache__").exists())
+            self.assertFalse((project / "hooks" / "stray.pyc").exists())
+
+    def test_update_hooks_brings_an_older_project_up_to_date(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            install_scaffold(root, name="fixture")
+            packaged = (root / "hooks" / "guard_git.py").read_bytes()
+            (root / "hooks" / "guard_git.py").write_text("# older guard\n", encoding="utf-8")
+            (root / "hooks" / "guard_role_gate.py").unlink()
+            (root / "hooks" / "project_guard.py").write_text("# ours\n", encoding="utf-8")
+
+            preview = update_hooks(root, dry_run=True)
+            self.assertEqual(["guard_role_gate.py"], preview["added"])
+            self.assertEqual(["guard_git.py"], preview["updated"])
+            self.assertFalse((root / "hooks" / "guard_role_gate.py").exists())
+
+            result = update_hooks(root)
+            self.assertEqual(preview, result)
+            self.assertEqual(packaged, (root / "hooks" / "guard_git.py").read_bytes())
+            self.assertTrue((root / "hooks" / "guard_role_gate.py").is_file())
+            self.assertEqual(
+                "# ours\n", (root / "hooks" / "project_guard.py").read_text(encoding="utf-8")
+            )
+            self.assertIn("common.py", result["unchanged"])
+            self.assertFalse((root / "hooks" / "__pycache__").exists())
+
+            again = update_hooks(root)
+            self.assertEqual([], again["added"] + again["updated"])
+
+    def test_update_hooks_creates_the_folder_when_it_is_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            result = update_hooks(root)
+            self.assertIn("guard_credentials.py", result["added"])
+            self.assertTrue((root / "hooks" / "common.py").is_file())
 
     def test_generated_claude_settings_register_every_guard(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
