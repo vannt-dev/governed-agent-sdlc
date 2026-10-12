@@ -25,7 +25,8 @@ jobs:
           python-version: ${{ matrix.python }}
           cache: pip
       - name: Install
-        run: python -m pip install -e .
+        # uv is what the generated hooks run the guards with; the adapter tests go that way
+        run: python -m pip install -e . uv==0.12.10
       - name: Validate
         run: agentkit validate
       - name: Test
@@ -42,7 +43,7 @@ jobs:
           python-version: "3.13"
           cache: pip
       - name: Install development tools
-        run: python -m pip install -e ".[dev]"
+        run: python -m pip install -e ".[dev]" uv==0.12.10
       - name: Lint and format
         run: |
           ruff check src hooks tests
