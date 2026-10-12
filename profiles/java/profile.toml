@@ -1,0 +1,8 @@
+id = "java"
+description = "Java and Spring Boot defaults for a Maven build; a Gradle project replaces the commands."
+source_globs = ["**/*.java", "**/pom.xml", "**/*.gradle", "**/*.gradle.kts", "**/src/main/resources/**"]
+generated_globs = ["**/target/**", "**/build/**", "**/.gradle/**"]
+
+[commands]
+test = "mvn -B test"
+build = "mvn -B -DskipTests package"

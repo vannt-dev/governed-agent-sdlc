@@ -2,7 +2,7 @@
 
 ## Commands
 
-- `agentkit init [path] [--name NAME] [--adapter none|claude-code|codex] [--dry-run]`
+- `agentkit init [path] [--name NAME] [--adapter none|claude-code|codex] [--profile ID]... [--dry-run]`
 - `agentkit validate [path] [--format text|json]`
 - `agentkit doctor [path] [--format text|json]`
 - `agentkit generate claude-code|codex [path] [--force] [--dry-run]`

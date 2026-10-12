@@ -34,7 +34,8 @@ grant an AI permission to approve, merge, release, or retrieve credentials.
   artifact commands.
 - Claude Code agent generation and safety hooks.
 - Native Codex project configuration and governed role generation.
-- Stack profiles for generic repositories, Python, .NET, and Nuxt.
+- Stack profiles for generic repositories, Python, .NET, Nuxt, Node.js and TypeScript, Java
+  (Spring Boot on Maven), and Flutter.
 - Cross-platform tests and reusable GitHub Actions.
 
 ## Quick start
@@ -87,8 +88,21 @@ Use `--format json` with `validate`, `doctor`, generation, migration, and artifa
 commands for automation. Preview additive initialization or adapter generation with `--dry-run`.
 
 Initialization is additive: existing `AGENTS.md`, manifest, core policy, hook, and adapter files are
-not overwritten. A fresh project receives the generic stack profiles and a minimal `AGENTS.md` so
+not overwritten. A fresh project receives the stack profiles and a minimal `AGENTS.md` so
 generated roles always have the instructions they reference.
+
+Name the stack when you initialize, and the manifest starts with its profile and its commands
+instead of the generic one:
+
+```bash
+agentkit init my-service --profile java
+agentkit init my-app --profile flutter --profile node   # several: the first to name a command wins
+```
+
+The profiles are `generic`, `python`, `dotnet`, `nuxt`, `node`, `java` and `flutter`. The commands a
+profile gives are a starting point written into `[commands]` of the manifest: a Gradle project
+replaces the Maven ones of `java`, and `flutter` names no build because which artefact to build is
+the project's to say.
 
 Create and move a governed artifact:
 

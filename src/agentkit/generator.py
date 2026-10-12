@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import shutil
+import tomllib
+from collections.abc import Sequence
 from pathlib import Path
 
 ROLE_MODELS = {
@@ -192,7 +194,33 @@ def generate_codex(root: Path, *, force: bool = False, dry_run: bool = False) ->
     return generated
 
 
-def install_scaffold(destination: Path, *, name: str, dry_run: bool = False) -> list[Path]:
+def shipped_profiles() -> list[str]:
+    """The stack profiles this version carries, by the name a manifest uses for them."""
+    return sorted(path.parent.name for path in (package_root() / "profiles").glob("*/profile.toml"))
+
+
+def _profile_commands(profiles: Sequence[str]) -> dict[str, str]:
+    """The commands the chosen profiles name; where two name the same one, the first listed wins."""
+    commands: dict[str, str] = {}
+    for profile in profiles:
+        path = package_root() / "profiles" / profile / "profile.toml"
+        # a manifest may also name an adapter or a capability, which has no commands to give
+        if not path.is_file():
+            continue
+        declared = tomllib.loads(path.read_text(encoding="utf-8")).get("commands", {})
+        for key, value in declared.items():
+            if value and key not in commands:
+                commands[key] = value
+    return commands
+
+
+def install_scaffold(
+    destination: Path,
+    *,
+    name: str,
+    profiles: Sequence[str] = ("generic",),
+    dry_run: bool = False,
+) -> list[Path]:
     source = package_root()
     copied: list[Path] = []
     for relative in ("core", "hooks", "profiles"):
@@ -205,6 +233,12 @@ def install_scaffold(destination: Path, *, name: str, dry_run: bool = False) -> 
             copied.append(dst)
     manifest = destination / ".agent" / "project.toml"
     if not manifest.exists():
+        listed = ", ".join(f'"{_toml_escape(profile)}"' for profile in profiles)
+        # a project starts with the commands of its stack and changes them where its own differ
+        commands = "".join(
+            f'{key} = "{_toml_escape(value)}"\n'
+            for key, value in _profile_commands(profiles).items()
+        )
         body = f'''version = 1
 protected_areas = [
   "authentication",
@@ -220,7 +254,7 @@ topology = "monorepo"
 [[repositories]]
 id = "root"
 path = "."
-profiles = ["generic"]
+profiles = [{listed}]
 
 [workflow]
 require_spec = true
@@ -228,6 +262,8 @@ require_plan = true
 require_review = true
 require_qa = true
 '''
+        if commands:
+            body += f"\n[commands]\n{commands}"
         if not dry_run:
             manifest.parent.mkdir(parents=True, exist_ok=True)
             manifest.write_text(body, encoding="utf-8")

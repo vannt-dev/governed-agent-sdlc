@@ -1,0 +1,9 @@
+id = "flutter"
+description = "Flutter and Dart application defaults."
+source_globs = ["**/*.dart", "**/pubspec.yaml", "**/analysis_options.yaml"]
+generated_globs = ["**/.dart_tool/**", "**/build/**", "**/*.g.dart", "**/*.freezed.dart", "**/ios/Pods/**"]
+
+[commands]
+format = "dart format --output=none --set-exit-if-changed ."
+lint = "flutter analyze"
+test = "flutter test"

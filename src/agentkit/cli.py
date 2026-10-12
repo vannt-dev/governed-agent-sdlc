@@ -24,7 +24,13 @@ from agentkit.config import (
     find_project_root,
 )
 from agentkit.events import emit_event
-from agentkit.generator import generate_claude, generate_codex, install_scaffold, update_hooks
+from agentkit.generator import (
+    generate_claude,
+    generate_codex,
+    install_scaffold,
+    shipped_profiles,
+    update_hooks,
+)
 from agentkit.runs import EXIT_PROVIDER_ERROR, GateStatus
 from agentkit.validator import validate_project
 
@@ -38,6 +44,14 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("path", nargs="?", default=".")
     init.add_argument("--name")
     init.add_argument("--adapter", choices=("none", "claude-code", "codex"), default="claude-code")
+    init.add_argument(
+        "--profile",
+        action="append",
+        choices=shipped_profiles(),
+        dest="profiles",
+        help="Stack profile of the project; repeat for several. The manifest names them and "
+        "takes their commands (default: generic)",
+    )
     init.add_argument("--dry-run", action="store_true")
     _add_format(init)
 
@@ -277,7 +291,9 @@ def _init(args: argparse.Namespace) -> int:
     if not args.dry_run:
         destination.mkdir(parents=True, exist_ok=True)
     name = args.name or destination.name
-    copied = install_scaffold(destination, name=name, dry_run=args.dry_run)
+    copied = install_scaffold(
+        destination, name=name, profiles=tuple(args.profiles or ("generic",)), dry_run=args.dry_run
+    )
     if args.adapter == "claude-code":
         copied.extend(generate_claude(destination, dry_run=args.dry_run))
     elif args.adapter == "codex":
