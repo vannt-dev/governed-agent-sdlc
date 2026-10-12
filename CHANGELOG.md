@@ -3,6 +3,17 @@
 All notable changes to Governed Agent SDLC are documented here. The project follows Semantic
 Versioning while its public interfaces remain alpha.
 
+## [Unreleased]
+
+### Added
+
+- Stack profiles for Node.js and TypeScript (`node`), Java with Spring Boot on Maven (`java`), and
+  Flutter (`flutter`), beside `generic`, `python`, `dotnet` and `nuxt`.
+- `agentkit init --profile ID` (repeatable) starts a project on a stack: the manifest names the
+  profiles and takes their commands as its `[commands]`, the first profile to name a command
+  winning. Without the option a project starts on `generic`, with no commands, as before. A
+  profile that is not shipped is refused before anything is written.
+
 ## [0.6.0] - 2026-10-12
 
 ### Upgrade notes
