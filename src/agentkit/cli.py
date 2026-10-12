@@ -25,14 +25,24 @@ from agentkit.config import (
 )
 from agentkit.events import emit_event
 from agentkit.generator import (
+    generate_antigravity,
     generate_claude,
     generate_codex,
+    generate_opencode,
     install_scaffold,
     shipped_profiles,
     update_hooks,
 )
 from agentkit.runs import EXIT_PROVIDER_ERROR, GateStatus
 from agentkit.validator import validate_project
+
+# The tools a project can be generated for, by the name the command line and a manifest use.
+ADAPTERS = {
+    "claude-code": generate_claude,
+    "codex": generate_codex,
+    "opencode": generate_opencode,
+    "antigravity": generate_antigravity,
+}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -43,7 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
     init = sub.add_parser("init", help="Initialize Governed Agent SDLC in a project")
     init.add_argument("path", nargs="?", default=".")
     init.add_argument("--name")
-    init.add_argument("--adapter", choices=("none", "claude-code", "codex"), default="claude-code")
+    init.add_argument("--adapter", choices=("none", *ADAPTERS), default="claude-code")
     init.add_argument(
         "--profile",
         action="append",
@@ -64,7 +74,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_format(doctor)
 
     generate = sub.add_parser("generate", help="Generate an AI-tool adapter")
-    generate.add_argument("adapter", choices=("claude-code", "codex"))
+    generate.add_argument("adapter", choices=tuple(ADAPTERS))
     generate.add_argument("path", nargs="?", default=".")
     generate.add_argument("--force", action="store_true")
     generate.add_argument("--dry-run", action="store_true")
@@ -200,7 +210,7 @@ def main(argv: list[str] | None = None) -> int:
             return _doctor(Path(args.path), args.output_format)
         if args.command == "generate":
             root = find_project_root(Path(args.path))
-            generator = generate_claude if args.adapter == "claude-code" else generate_codex
+            generator = ADAPTERS[args.adapter]
             generated = generator(root, force=args.force, dry_run=args.dry_run)
             _emit(
                 {"adapter": args.adapter, "dry_run": args.dry_run, "paths": _paths(generated)},
@@ -294,10 +304,8 @@ def _init(args: argparse.Namespace) -> int:
     copied = install_scaffold(
         destination, name=name, profiles=tuple(args.profiles or ("generic",)), dry_run=args.dry_run
     )
-    if args.adapter == "claude-code":
-        copied.extend(generate_claude(destination, dry_run=args.dry_run))
-    elif args.adapter == "codex":
-        copied.extend(generate_codex(destination, dry_run=args.dry_run))
+    if args.adapter != "none":
+        copied.extend(ADAPTERS[args.adapter](destination, dry_run=args.dry_run))
     _emit(
         {
             "name": name,

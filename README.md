@@ -34,6 +34,8 @@ grant an AI permission to approve, merge, release, or retrieve credentials.
   artifact commands.
 - Claude Code agent generation and safety hooks.
 - Native Codex project configuration and governed role generation.
+- OpenCode subagents with a guard plugin, and Antigravity agents with a guard hook
+  ([OpenCode adapter](adapters/opencode/README.md), [Antigravity adapter](adapters/antigravity/README.md)).
 - Stack profiles for generic repositories, Python, .NET, Nuxt, Node.js and TypeScript, Java
   (Spring Boot on Maven), and Flutter.
 - Cross-platform tests and reusable GitHub Actions.
@@ -176,8 +178,10 @@ See [Architecture](docs/architecture.md), [Workflow](docs/workflow.md), and
 
 ## Maturity
 
-The project is an alpha. Claude Code and Codex consume the same core contracts rather than
-introducing parallel policy files.
+The project is an alpha. Claude Code, Codex, OpenCode and Antigravity consume the same core
+contracts rather than introducing parallel policy files. The credential and git guards hold on
+all four; the role write scope and the role gate are enforced on Claude Code only, because only
+its hook input says which role is acting.
 
 See [CHANGELOG.md](CHANGELOG.md) for release history and upgrade notes.
 

@@ -13,6 +13,15 @@ Versioning while its public interfaces remain alpha.
   profiles and takes their commands as its `[commands]`, the first profile to name a command
   winning. Without the option a project starts on `generic`, with no commands, as before. A
   profile that is not shipped is refused before anything is written.
+- An OpenCode adapter (`agentkit generate opencode`, `init --adapter opencode`): one subagent per
+  role under `.opencode/agents/`, where only the developer may edit and every role is asked
+  about shell commands, and a plugin under `.opencode/plugins/` that asks the project's
+  credential and git guards before a command runs or a file is read.
+- An Antigravity adapter (`agentkit generate antigravity`, `init --adapter antigravity`): one
+  agent per role under `.agents/agents/<role>/agent.md` and a `PreToolUse` hook in
+  `.agents/hooks.json` that asks the same guards. Both adapters deny what they cannot check: a
+  guard that is missing or fails, and input that is not a tool call. A manifest may name
+  `opencode` and `antigravity` as capabilities of a repository.
 
 ## [0.6.0] - 2026-10-12
 

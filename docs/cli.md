@@ -2,10 +2,10 @@
 
 ## Commands
 
-- `agentkit init [path] [--name NAME] [--adapter none|claude-code|codex] [--profile ID]... [--dry-run]`
+- `agentkit init [path] [--name NAME] [--adapter none|claude-code|codex|opencode|antigravity] [--profile ID]... [--dry-run]`
 - `agentkit validate [path] [--format text|json]`
 - `agentkit doctor [path] [--format text|json]`
-- `agentkit generate claude-code|codex [path] [--force] [--dry-run]`
+- `agentkit generate claude-code|codex|opencode|antigravity [path] [--force] [--dry-run]`
 - `agentkit update-hooks [path] [--dry-run] [--format text|json]`
 - `agentkit migrate [path] [--to-version VERSION] [--dry-run]`
 - `agentkit artifact new KIND SLUG [--path PATH]`
