@@ -9,6 +9,7 @@
 [![PyPI downloads](https://static.pepy.tech/badge/governed-agent-sdlc)](https://pepy.tech/projects/governed-agent-sdlc)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-0b7771)](https://www.python.org/)
 [![MIT License](https://img.shields.io/badge/License-MIT-f06f4f.svg)](LICENSE)
+[![Official vannt-dev build](https://vannt-dev.github.io/badges/official.svg)](https://vannt-dev.github.io/official.html)
 
 [Project website](https://vannt-dev.github.io/governed-agent-sdlc/) · [Architecture](docs/architecture.md) · [Workflow](docs/workflow.md) · [CLI reference](docs/cli.md) · [Adoption guide](docs/adoption.md)
 
