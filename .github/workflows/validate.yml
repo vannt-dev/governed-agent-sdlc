@@ -8,13 +8,20 @@ on:
 permissions:
   contents: read
 
+# A new push to the same pull request cancels the older run; runs on main always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     strategy:
       fail-fast: false
+      # A pull request runs every Python on Linux and the newest one on Windows and
+      # macOS; main runs all nine. macOS runners are few and shared by every repository,
+      # and an OS problem seldom depends on the Python version.
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python: ["3.11", "3.12", "3.13"]
+        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"os":"ubuntu-latest","python":"3.11"},{"os":"ubuntu-latest","python":"3.12"},{"os":"ubuntu-latest","python":"3.13"},{"os":"windows-latest","python":"3.13"},{"os":"macos-latest","python":"3.13"}]' || '[{"os":"ubuntu-latest","python":"3.11"},{"os":"ubuntu-latest","python":"3.12"},{"os":"ubuntu-latest","python":"3.13"},{"os":"windows-latest","python":"3.11"},{"os":"windows-latest","python":"3.12"},{"os":"windows-latest","python":"3.13"},{"os":"macos-latest","python":"3.11"},{"os":"macos-latest","python":"3.12"},{"os":"macos-latest","python":"3.13"}]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository
@@ -101,3 +108,21 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Run browser checks
         run: python tests/browser_checks.py
+
+  # The one status branch protection requires: the test matrix differs between pull
+  # requests and main, so its legs cannot be required by name.
+  result:
+    name: CI result
+    if: always()
+    needs: [test, quality, package, browser]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Evaluate jobs
+        env:
+          RESULTS: ${{ needs.test.result }} ${{ needs.quality.result }} ${{ needs.package.result }} ${{ needs.browser.result }}
+        run: |
+          echo "test quality package browser: $RESULTS"
+          for r in $RESULTS; do
+            if [ "$r" != "success" ]; then echo "::error::a job did not succeed ($r)"; exit 1; fi
+          done
