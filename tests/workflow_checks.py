@@ -30,7 +30,7 @@ class WorkflowStructureChecks(unittest.TestCase):
 
     def test_validation_has_quality_package_and_browser_jobs(self) -> None:
         workflow = load_workflow("validate.yml")
-        self.assertEqual({"test", "quality", "package", "browser"}, set(workflow["jobs"]))
+        self.assertEqual({"test", "quality", "package", "browser", "result"}, set(workflow["jobs"]))
         package_steps = "\n".join(
             str(step.get("run", "")) for step in workflow["jobs"]["package"]["steps"]
         )
