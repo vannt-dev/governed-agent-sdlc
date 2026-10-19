@@ -10,6 +10,8 @@ from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
+import git_isolation  # noqa: F401  (git commands stay on the tests' own repositories)
+
 from agentkit.cli_review import CliReviewProvider
 from agentkit.review import OpenCodeReviewProvider, ReviewContext, ReviewProviderError
 
