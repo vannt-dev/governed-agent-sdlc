@@ -8,6 +8,8 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
+import git_isolation  # noqa: F401  (git commands stay on the tests' own repositories)
+
 from agentkit.approval import approval_status, record_review_approval
 from agentkit.cli import main
 from agentkit.config import ConfigError, load_config, manifest_path
