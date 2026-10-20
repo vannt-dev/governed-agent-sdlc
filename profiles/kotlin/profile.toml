@@ -1,0 +1,8 @@
+id = "kotlin"
+description = "Kotlin on a Gradle build; check runs the tests and ktlint or detekt when the build applies them."
+source_globs = ["**/*.kt", "**/*.kts", "**/gradle/libs.versions.toml", "**/gradle.properties"]
+generated_globs = ["**/build/**", "**/.gradle/**", "**/.kotlin/**"]
+
+[commands]
+test = "./gradlew check"
+build = "./gradlew assemble"

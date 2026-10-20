@@ -38,7 +38,7 @@ grant an AI permission to approve, merge, release, or retrieve credentials.
 - OpenCode subagents with a guard plugin, and Antigravity agents with a guard hook
   ([OpenCode adapter](adapters/opencode/README.md), [Antigravity adapter](adapters/antigravity/README.md)).
 - Stack profiles for generic repositories, Python, .NET, Nuxt, Node.js and TypeScript, Java
-  (Spring Boot on Maven), and Flutter.
+  (Spring Boot on Maven), Flutter, Go, Rust, Kotlin (Gradle), and PHP (Composer).
 - Cross-platform tests and reusable GitHub Actions.
 
 ## Quick start
@@ -103,10 +103,13 @@ agentkit init my-service --profile java
 agentkit init my-app --profile flutter --profile node   # several: the first to name a command wins
 ```
 
-The profiles are `generic`, `python`, `dotnet`, `nuxt`, `node`, `java` and `flutter`. The commands a
-profile gives are a starting point written into `[commands]` of the manifest: a Gradle project
-replaces the Maven ones of `java`, and `flutter` names no build because which artefact to build is
-the project's to say.
+The profiles are `generic`, `python`, `dotnet`, `nuxt`, `node`, `java`, `flutter`, `go`, `rust`,
+`kotlin` and `php`. The commands a profile gives are a starting point written into `[commands]` of
+the manifest: a Gradle project replaces the Maven ones of `java`, and `flutter` names no build
+because which artefact to build is the project's to say. `kotlin` runs `./gradlew check`, which
+runs ktlint or detekt only when the build applies them, and `php` names `composer validate` and
+PHPUnit; a project using PHPStan or PHP CS Fixer adds those commands. The `go` format check is a
+POSIX shell line, because `gofmt -l` lists files without failing.
 
 Create and move a governed artifact:
 

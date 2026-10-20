@@ -1,0 +1,8 @@
+id = "php"
+description = "PHP with Composer and PHPUnit; a project using PHPStan or PHP CS Fixer adds their commands."
+source_globs = ["**/*.php", "**/composer.json", "**/composer.lock", "**/phpunit.xml*", "**/phpunit.dist.xml"]
+generated_globs = ["**/vendor/**", "**/.phpunit.cache/**", "**/.phpunit.result.cache", "**/.php-cs-fixer.cache"]
+
+[commands]
+lint = "composer validate --no-check-publish"
+test = "vendor/bin/phpunit"
