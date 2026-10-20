@@ -9,6 +9,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import git_isolation  # noqa: F401  (git commands stay on the tests' own repositories)
+
 from agentkit.policy import PolicyEngine
 from agentkit.review import (
     MAX_OUTPUT_BYTES,

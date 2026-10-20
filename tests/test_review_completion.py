@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import git_isolation  # noqa: F401  (git commands stay on the tests' own repositories)
 from test_review_audit import ProjectFixture
 
 from agentkit.artifacts import create_artifact, parse_artifact, serialize_artifact
