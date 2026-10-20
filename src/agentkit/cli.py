@@ -275,11 +275,9 @@ def main(argv: list[str] | None = None) -> int:
             path.write_text(serialize_artifact(updated), encoding="utf-8")
             note = ""
             if updated.status == "approved":
-                note = (
-                    f" (approved by {approved_by}, verified on GitHub)"
-                    if verification == "github"
-                    else f" (approved by {approved_by}, unverified local approval)"
-                )
+                # the approver is in the file; the output says only how it was established
+                github = verification == "github"
+                note = " (verified on GitHub)" if github else " (unverified local approval)"
             print(f"{artifact.status} -> {updated.status}: {path}{note}")
             return 0
         if args.command == "review" and args.review_command == "evaluate":
