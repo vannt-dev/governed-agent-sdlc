@@ -34,7 +34,8 @@
       "properties": {
         "approved_by": { "type": "string", "minLength": 1 },
         "approved_at": { "type": "string", "format": "date-time" },
-        "evidence": { "type": "string", "minLength": 1 }
+        "evidence": { "type": "string", "minLength": 1 },
+        "verification": { "enum": ["github", "unverified"] }
       }
     }
   },

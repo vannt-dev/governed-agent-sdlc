@@ -9,7 +9,7 @@
 - `agentkit update-hooks [path] [--dry-run] [--format text|json]`
 - `agentkit migrate [path] [--to-version VERSION] [--dry-run]`
 - `agentkit artifact new KIND SLUG [--path PATH]`
-- `agentkit artifact transition FILE TARGET [--approved-by ACTOR] [--evidence EVIDENCE]`
+- `agentkit artifact transition FILE TARGET [--approved-by ACTOR] [--evidence EVIDENCE] [--approval-mode local|github]`
 - `agentkit artifact list [--path PATH] [--format text|json]`
 - `agentkit artifact show FILE [--path PATH] [--format text|json]`
 - `agentkit artifact graph [--path PATH] [--format text|json]`
@@ -86,7 +86,7 @@ include_requirement = true
 include_spec = true
 include_plan = true
 enforce_artifact_gate = false   # opt in: review artifacts require a fresh linked passing run
-approval_mode = "local"        # or "github": verify a GitHub PR review before recording approval
+approval_mode = "local"        # or "github": verify review and artifact approvals on GitHub
 
 [remediation]
 enabled = true
@@ -121,8 +121,37 @@ JSON output writes one JSON document to stdout. Operational errors use the same 
 {"error": "description", "ok": false}
 ```
 
-Human approval metadata must come from a human-controlled channel. The CLI checks that approval
-fields are present; it does not grant an agent authority to fill them on its own.
+Human approval metadata must come from a human-controlled channel. In local mode the CLI checks
+that approval fields are present and marks the record unverified; it does not grant an agent
+authority to fill them on its own. GitHub mode checks the approver on GitHub (see below).
+
+## Artifact approval verification
+
+`artifact transition FILE approved` follows the same `[review].approval_mode` as `review approve`,
+so a project verifies both kinds of approval or neither. The default is `local`, as it is for
+`review approve`.
+
+- **local** (default): records `--approved-by` and `--evidence` as given and writes
+  `verification = "unverified"` in the `[approval]` table. Nothing is sent to GitHub, so it works
+  offline. The identity is a claim, not a check.
+- **github**: `--evidence` must be a pull request review URL (`…/pull/N#pullrequestreview-ID`) or an
+  issue or pull request comment URL (`…/issues/N#issuecomment-ID`, `…/pull/N#issuecomment-ID`).
+  Through your authenticated `gh` (the same `gh api` call, token variables and repository-origin
+  check as `review approve`), the CLI confirms the URL belongs to this repository's GitHub
+  origin, that GitHub returns it under exactly that URL, and that its author is a human whose
+  association is `OWNER`, `MEMBER` or `COLLABORATOR`. A review must be a submitted `APPROVED`
+  review. The verified login is recorded as `approved_by = "github:LOGIN"` with
+  `verification = "github"`; `--approved-by` is optional and, when given, must be that login.
+  Anything that cannot be verified is refused with exit `2` and the artifact is not changed.
+
+`--approval-mode github` asks for verification in a local project. A project configured for
+`github` refuses `--approval-mode local`, so its records cannot fall back to an unverified claim.
+
+A comment proves who wrote it, not what it says: whoever reads the evidence judges that it
+approves the artifact. Verification is a check at transition time; the record lives in the
+repository, so its protection is the pull request review of that change. `agentkit validate`
+accepts records without a `verification` field (written before it existed), rejects unknown
+values, and requires a `github` record to name a `github:LOGIN`.
 
 ## Testing the installed OCR integration
 
@@ -178,7 +207,7 @@ the latest attempt of a linked run to pass with current source. The default pres
 manual artifact workflow.
 
 Local approval mode records a claimed human identity and durable evidence; it does not authenticate
-that identity. GitHub mode uses authenticated `gh api` to verify the precise review URL, human login,
+that identity, and artifact approvals made in it are marked `verification = "unverified"`. GitHub mode uses authenticated `gh api` to verify the precise review URL, human login,
 collaborator association, submitted decision and commit against HEAD and the repository origin.
 It requires a clean committed tree. Use `--actor github:LOGIN` and a URL ending in
 `#pullrequestreview-ID`. Verification is recorded at approval time; it is not continuously polled

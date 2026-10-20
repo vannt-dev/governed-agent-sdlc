@@ -37,6 +37,18 @@ class WorkflowStructureChecks(unittest.TestCase):
         self.assertIn("twine check", package_steps)
         self.assertRegex(package_steps, re.compile(r"pip install dist/\*\.whl"))
 
+    def test_reusable_validation_runs_the_revision_the_caller_pinned(self) -> None:
+        workflow = load_workflow("reusable-agent-validation.yml")
+        # PyYAML reads the `on:` key as True
+        inputs = workflow[True]["workflow_call"]["inputs"]
+        self.assertEqual("", inputs["toolkit-ref"]["default"])
+        checkout = next(
+            step
+            for step in workflow["jobs"]["validate"]["steps"]
+            if step.get("with", {}).get("repository") == "vannt-dev/governed-agent-sdlc"
+        )
+        self.assertEqual("${{ inputs.toolkit-ref || job.workflow_sha }}", checkout["with"]["ref"])
+
     def test_release_permissions_and_provenance_are_explicit(self) -> None:
         release = load_workflow("release.yml")["jobs"]["release"]
         self.assertEqual("write", release["permissions"]["attestations"])

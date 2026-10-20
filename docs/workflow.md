@@ -16,7 +16,9 @@ the replacement names `supersedes`, while the old artifact transitions to `super
 rejects children of superseded or archived artifacts.
 
 Statuses are changed through `agentkit artifact transition`, not by loosely editing prose. Approval
-requires a human actor and durable evidence such as a GitHub issue or pull-request comment.
+requires a human actor and durable evidence such as a GitHub issue or pull-request comment. With
+`[review].approval_mode = "github"` the CLI verifies that evidence on GitHub and records the
+verified login; otherwise the record is marked unverified (see the CLI reference).
 
 When the corresponding workflow flags are enabled, the validator enforces these parent gates:
 

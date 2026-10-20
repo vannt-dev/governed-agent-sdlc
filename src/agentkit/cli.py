@@ -11,6 +11,8 @@ from typing import Any
 
 from agentkit import __version__
 from agentkit.artifacts import (
+    ALLOWED_TRANSITIONS,
+    Artifact,
     ArtifactError,
     create_artifact,
     parse_artifact,
@@ -116,8 +118,17 @@ def build_parser() -> argparse.ArgumentParser:
     move = artifact_sub.add_parser("transition")
     move.add_argument("artifact_path")
     move.add_argument("target")
-    move.add_argument("--approved-by")
+    move.add_argument(
+        "--approved-by",
+        help="Approving human; with GitHub verification it defaults to the evidence author",
+    )
     move.add_argument("--evidence")
+    move.add_argument(
+        "--approval-mode",
+        choices=("local", "github"),
+        help="Verify the approval on GitHub, or record it unverified "
+        "(default: [review].approval_mode, which is local)",
+    )
 
     review = sub.add_parser("review", help="Evaluate review findings or execute review provider")
     review_sub = review.add_subparsers(dest="review_command", required=True)
@@ -251,14 +262,23 @@ def main(argv: list[str] | None = None) -> int:
 
                 if load_config(root).review["enforce_artifact_gate"]:
                     require_artifact_gate(root, artifact.id, path)
+            approved_by, verification = args.approved_by, "unverified"
+            if args.target.strip().lower() == "approved":
+                approved_by, verification = _artifact_approval_identity(root, artifact, args)
             updated = transition(
                 artifact,
                 args.target,
-                approved_by=args.approved_by,
+                approved_by=approved_by,
                 evidence=args.evidence,
+                verification=verification,
             )
             path.write_text(serialize_artifact(updated), encoding="utf-8")
-            print(f"{artifact.status} -> {updated.status}: {path}")
+            note = ""
+            if updated.status == "approved":
+                # the approver is in the file; the output says only how it was established
+                github = verification == "github"
+                note = " (verified on GitHub)" if github else " (unverified local approval)"
+            print(f"{artifact.status} -> {updated.status}: {path}{note}")
             return 0
         if args.command == "review" and args.review_command == "evaluate":
             return _review_evaluate(Path(args.findings_path), args.output_dir, args.output_format)
@@ -294,6 +314,33 @@ def _project_artifact_path(root: Path, value: str) -> Path:
     if path.suffix.lower() != ".md":
         raise ArtifactError(f"Artifact must be a Markdown file: {path}")
     return path
+
+
+def _artifact_approval_identity(
+    root: Path, artifact: Artifact, args: argparse.Namespace
+) -> tuple[str | None, str]:
+    """Who approved, and how that was established: `github` or `unverified`.
+
+    The mode is `[review].approval_mode`, the one `review approve` follows, so a project verifies
+    both kinds of approval or neither. `--approval-mode github` asks for verification in a local
+    project; a project that requires it cannot be switched back to an unverified record.
+    """
+    from agentkit.config import load_config
+
+    configured = load_config(root).review["approval_mode"]
+    mode = args.approval_mode or configured
+    if configured == "github" and mode == "local":
+        raise ConfigError(
+            "This project requires GitHub-verified approvals ([review].approval_mode = github)"
+        )
+    if mode == "local" or "approved" not in ALLOWED_TRANSITIONS.get(artifact.status, set()):
+        return args.approved_by, "unverified"
+    if not args.evidence:
+        raise ArtifactError("GitHub approval requires --evidence: a GitHub review or comment URL")
+    from agentkit.github_approval import verify_github_approval_evidence
+
+    verified = verify_github_approval_evidence(root, args.evidence, args.approved_by)
+    return str(verified["actor"]), "github"
 
 
 def _init(args: argparse.Namespace) -> int:
