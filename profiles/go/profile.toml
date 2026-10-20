@@ -1,0 +1,10 @@
+id = "go"
+description = "Go module defaults: gofmt, go vet, and go test over every package."
+source_globs = ["**/*.go", "**/go.mod", "**/go.sum"]
+generated_globs = ["**/vendor/**"]
+
+[commands]
+format = 'test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }'
+lint = "go vet ./..."
+test = "go test ./..."
+build = "go build ./..."

@@ -13,6 +13,10 @@ Versioning while its public interfaces remain alpha.
   human owner, member or collaborator. The CLI checks it through `gh` as `review approve` does and
   records the verified `github:LOGIN` as the approver, with `verification = "github"`. A project
   set to `github` cannot record an unverified approval.
+- Stack profiles for Go (`go`: gofmt, `go vet`, `go test`), Rust (`rust`: `cargo fmt --check`,
+  Clippy with warnings denied, `cargo test`), Kotlin on Gradle (`kotlin`: `./gradlew check`,
+  which runs ktlint or detekt when the build applies them) and PHP (`php`:
+  `composer validate`, PHPUnit), for `agentkit init --profile`. Existing projects are not changed.
 
 ### Changed
 

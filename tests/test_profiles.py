@@ -45,7 +45,20 @@ class ShippedProfileTests(unittest.TestCase):
     def test_the_stacks_people_work_in_have_a_profile(self) -> None:
         shipped = {path.parent.name for path in PROFILES.glob("*/profile.toml")}
         self.assertLessEqual(
-            {"generic", "python", "dotnet", "nuxt", "node", "java", "flutter"}, shipped
+            {
+                "generic",
+                "python",
+                "dotnet",
+                "nuxt",
+                "node",
+                "java",
+                "flutter",
+                "go",
+                "rust",
+                "kotlin",
+                "php",
+            },
+            shipped,
         )
 
     def test_a_profile_names_the_commands_of_its_stack(self) -> None:
@@ -69,6 +82,40 @@ class ShippedProfileTests(unittest.TestCase):
         self.assertIn("**/.dart_tool/**", flutter["generated_globs"])
         # which artefact a Flutter project builds (apk, ipa, web) is the project's to say
         self.assertNotIn("build", flutter["commands"])
+
+    def test_go_rust_kotlin_and_php_use_the_commands_their_tools_document(self) -> None:
+        # the same checks repokeeper's stack templates run in CI for these stacks
+        go = _profile("go")
+        self.assertIn("gofmt -l .", go["commands"]["format"])
+        self.assertTrue(go["commands"]["format"].endswith("exit 1; }"))  # gofmt -l never fails
+        self.assertEqual("go vet ./...", go["commands"]["lint"])
+        self.assertEqual("go test ./...", go["commands"]["test"])
+        self.assertIn("**/*.go", go["source_globs"])
+        self.assertIn("**/go.mod", go["source_globs"])
+
+        rust = _profile("rust")
+        self.assertEqual("cargo fmt --all --check", rust["commands"]["format"])
+        self.assertEqual(
+            "cargo clippy --workspace --all-targets -- -D warnings", rust["commands"]["lint"]
+        )
+        # plain `cargo test` also runs doctests, which --all-targets would leave out
+        self.assertEqual("cargo test --workspace", rust["commands"]["test"])
+        self.assertIn("**/target/**", rust["generated_globs"])
+
+        kotlin = _profile("kotlin")
+        # ktlint and detekt are Gradle plugins a build applies or not; `check` runs them when
+        # applied, and the tests either way, so the profile names no linter of its own
+        self.assertEqual("./gradlew check", kotlin["commands"]["test"])
+        self.assertNotIn("lint", kotlin["commands"])
+        self.assertIn("**/*.kt", kotlin["source_globs"])
+        self.assertIn("**/build/**", kotlin["generated_globs"])
+
+        php = _profile("php")
+        self.assertEqual("composer validate --no-check-publish", php["commands"]["lint"])
+        self.assertEqual("vendor/bin/phpunit", php["commands"]["test"])
+        # PHPStan and PHP CS Fixer need a config file the project chooses to have
+        self.assertNotIn("phpstan", " ".join(php["commands"].values()))
+        self.assertIn("**/vendor/**", php["generated_globs"])
 
 
 class InitProfileTests(unittest.TestCase):

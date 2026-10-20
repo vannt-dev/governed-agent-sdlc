@@ -1,0 +1,10 @@
+id = "rust"
+description = "Rust and Cargo workspace defaults: rustfmt, Clippy with warnings denied, and cargo test."
+source_globs = ["**/*.rs", "**/Cargo.toml", "**/Cargo.lock", "**/rust-toolchain.toml"]
+generated_globs = ["**/target/**"]
+
+[commands]
+format = "cargo fmt --all --check"
+lint = "cargo clippy --workspace --all-targets -- -D warnings"
+test = "cargo test --workspace"
+build = "cargo build --workspace"
