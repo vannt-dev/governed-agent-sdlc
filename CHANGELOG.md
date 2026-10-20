@@ -3,6 +3,24 @@
 All notable changes to Governed Agent SDLC are documented here. The project follows Semantic
 Versioning while its public interfaces remain alpha.
 
+## [Unreleased]
+
+### Added
+
+- GitHub-verified artifact approvals. With `[review].approval_mode = "github"`, or
+  `agentkit artifact transition FILE approved --approval-mode github`, the evidence must be a pull
+  request review URL or an issue or pull request comment URL in this repository, written by a
+  human owner, member or collaborator. The CLI checks it through `gh` as `review approve` does and
+  records the verified `github:LOGIN` as the approver, with `verification = "github"`. A project
+  set to `github` cannot record an unverified approval.
+
+### Changed
+
+- Artifact approvals made in local mode, the default, are marked `verification = "unverified"`.
+  Approvals recorded by earlier versions have no such field and stay valid.
+- The reusable validation workflow runs the toolkit revision the caller's `uses:` line pins
+  instead of `main`; `toolkit-ref` still overrides it.
+
 ## [0.7.0] - 2026-10-13
 
 ### Added

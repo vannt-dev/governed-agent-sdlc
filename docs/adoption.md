@@ -8,8 +8,12 @@
 4. Generate the adapter used by your team:
    - Claude Code: `agentkit generate claude-code`
    - Codex: `agentkit generate codex`
+   - OpenCode: `agentkit generate opencode`
+   - Antigravity: `agentkit generate antigravity`
 5. Run `agentkit doctor` on Windows, Linux, and macOS used by the team.
-6. Add the reusable validation workflow to required GitHub checks.
+6. Add the reusable validation workflow to required GitHub checks. Pin its `uses:` line to a
+   release tag or commit; the toolkit it runs is that same revision unless `toolkit-ref` names
+   another one.
 7. Configure a ruleset requiring pull requests, human review, and passing checks.
 8. Add real owners to `CODEOWNERS` before enforcing it.
 

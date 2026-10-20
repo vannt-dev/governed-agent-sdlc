@@ -22,9 +22,9 @@ security, artifact, review, and QA rules can be applied to different technology 
 The project is intentionally **human-in-the-loop**. It helps agents work predictably; it does not
 grant an AI permission to approve, merge, release, or retrieve credentials.
 
-> **Alpha status:** the core workflow, Claude Code and Codex adapters, deterministic safety hooks,
-> cross-platform validation, and PyPI Trusted Publishing are available. Interfaces may still evolve
-> before 1.0.
+> **Alpha status:** the core workflow, the Claude Code, Codex, OpenCode and Antigravity adapters,
+> deterministic safety hooks, cross-platform validation, and PyPI Trusted Publishing are available.
+> Interfaces may still evolve before 1.0.
 
 ## What is included
 
@@ -119,7 +119,12 @@ agentkit artifact transition docs/agent/specs/<file>.md approved \
 ```
 
 An agent must never supply approval metadata for itself. The human supplies the actor and durable
-evidence, and CI validates that the fields exist.
+evidence, and CI validates that the fields exist. By default (`[review].approval_mode = "local"`,
+as for `review approve`) the approval is recorded as given and marked
+`verification = "unverified"`. With `approval_mode = "github"`, or `--approval-mode github` on the
+command, the CLI checks through `gh` that the review or comment URL is in this repository and was
+written by a human collaborator, and records that login (`github:LOGIN`) as the approver; see
+[artifact approval verification](docs/cli.md#artifact-approval-verification).
 
 ## Project manifest
 

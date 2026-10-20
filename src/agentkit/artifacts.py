@@ -16,6 +16,9 @@ ARTIFACT_DIRECTORIES = {
     "review": "reviews",
     "qa": "qa",
 }
+APPROVAL_FIELDS = ("approved_by", "approved_at", "evidence", "verification")
+# How an approval's identity was established: checked against GitHub, or a claim recorded locally.
+APPROVAL_VERIFICATIONS = ("github", "unverified")
 ALLOWED_TRANSITIONS = {
     "draft": {"awaiting_approval", "archived"},
     "awaiting_approval": {"approved", "draft", "archived"},
@@ -95,7 +98,7 @@ def serialize_artifact(artifact: Artifact) -> str:
     if isinstance(approval, dict) and approval:
         lines.append("")
         lines.append("[approval]")
-        for key in ("approved_by", "approved_at", "evidence"):
+        for key in APPROVAL_FIELDS:
             value = approval.get(key)
             if value:
                 lines.append(f'{key} = "{_escape(str(value))}"')
@@ -109,6 +112,7 @@ def transition(
     *,
     approved_by: str | None = None,
     evidence: str | None = None,
+    verification: str = "unverified",
 ) -> Artifact:
     current = artifact.status
     target = target.strip().lower()
@@ -125,10 +129,13 @@ def transition(
             raise ArtifactError(
                 "Approval requires --approved-by and --evidence; agents cannot self-approve."
             )
+        if verification not in APPROVAL_VERIFICATIONS:
+            raise ArtifactError(f"Unknown approval verification: {verification}")
         metadata["approval"] = {
             "approved_by": approved_by,
             "approved_at": now,
             "evidence": evidence,
+            "verification": verification,
         }
     return Artifact(artifact.path, metadata, artifact.body)
 

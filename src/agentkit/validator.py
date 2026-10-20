@@ -7,6 +7,8 @@ from typing import Any
 
 from agentkit.artifacts import (
     ALLOWED_TRANSITIONS,
+    APPROVAL_FIELDS,
+    APPROVAL_VERIFICATIONS,
     ARTIFACT_KINDS,
     Artifact,
     ArtifactError,
@@ -227,7 +229,7 @@ def _validate_artifacts(config: ProjectConfig, artifacts: list[Artifact]) -> lis
             approval = approval_value if isinstance(approval_value, dict) else {}
             if approval_value is not None and not isinstance(approval_value, dict):
                 findings.append(Finding("error", artifact.path, "approval must be a table"))
-            unexpected = set(approval) - {"approved_by", "approved_at", "evidence"}
+            unexpected = set(approval) - set(APPROVAL_FIELDS)
             if unexpected:
                 findings.append(
                     Finding(
@@ -251,6 +253,27 @@ def _validate_artifacts(config: ProjectConfig, artifacts: list[Artifact]) -> lis
                 findings.append(
                     Finding(
                         "error", artifact.path, "approval.approved_at must be an ISO-8601 timestamp"
+                    )
+                )
+            # an approval recorded before verification existed has no field and stays valid
+            verification = approval.get("verification")
+            if verification is not None and verification not in APPROVAL_VERIFICATIONS:
+                findings.append(
+                    Finding(
+                        "error",
+                        artifact.path,
+                        "approval.verification must be one of: "
+                        + ", ".join(APPROVAL_VERIFICATIONS),
+                    )
+                )
+            elif verification == "github" and not str(approval.get("approved_by", "")).startswith(
+                "github:"
+            ):
+                findings.append(
+                    Finding(
+                        "error",
+                        artifact.path,
+                        "A GitHub-verified approval must name approved_by as github:LOGIN",
                     )
                 )
 

@@ -14,9 +14,12 @@ on:
         default: "."
         type: string
       toolkit-ref:
-        description: Governed Agent SDLC revision to execute
+        description: >-
+          Governed Agent SDLC revision to execute. Empty (the default) runs the revision of
+          this workflow file that the caller's `uses:` line pinned, so a caller on a release
+          tag or commit never picks up an unreleased main.
         required: false
-        default: "main"
+        default: ""
         type: string
 
 permissions:
@@ -32,7 +35,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: vannt-dev/governed-agent-sdlc
-          ref: ${{ inputs.toolkit-ref }}
+          # job.workflow_sha is the commit of this reusable file, not of the caller
+          ref: ${{ inputs.toolkit-ref || job.workflow_sha }}
           path: .agentkit-runtime
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
