@@ -27,7 +27,7 @@ jobs:
   release:
     name: Build and publish GitHub Release
     if: ${{ github.event_name == 'push' || inputs.publish_to_pypi != true }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
       id-token: write
@@ -101,7 +101,7 @@ jobs:
   publish-pypi:
     name: Publish existing release assets to PyPI
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_to_pypi == true }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     environment:
       name: pypi
       url: https://pypi.org/p/governed-agent-sdlc
