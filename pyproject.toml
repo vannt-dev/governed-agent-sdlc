@@ -31,12 +31,12 @@ Changelog = "https://github.com/vannt-dev/governed-agent-sdlc/blob/main/CHANGELO
 [project.optional-dependencies]
 dev = [
   "build==1.6.1",
-  "coverage==7.16.2",
+  "coverage==7.17.0",
   "hatchling==1.32.4",
   "mypy==2.4.0",
-  "playwright==1.64.0",
+  "playwright==1.64.1",
   "PyYAML==6.0.3",
-  "ruff==0.17.1",
+  "ruff==0.17.2",
   "twine==7.0.0",
 ]
 
