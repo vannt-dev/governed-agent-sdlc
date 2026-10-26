@@ -31,7 +31,7 @@ class ReleaseWorkflowTests(unittest.TestCase):
                 f"Action {action} must be pinned to a 40-character SHA",
             )
         self.assertIn(
-            "pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33",
+            "pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086",
             self.content,
         )
 
