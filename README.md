@@ -63,22 +63,22 @@ agentkit doctor
 Upgrade an existing installation to this release:
 
 ```bash
-python -m pip install --upgrade governed-agent-sdlc==0.8.0
+python -m pip install --upgrade governed-agent-sdlc==0.9.0
 agentkit --version
-agentkit update-hooks
-agentkit generate claude-code --force
+agentkit upgrade --dry-run
+agentkit upgrade
 agentkit doctor
 ```
 
-Version 0.8.0 adds stack profiles for Go, Rust, Kotlin, and PHP for `agentkit init --profile`, and
-GitHub-verified artifact approvals: with `[review].approval_mode = "github"` (or `artifact
-transition ... approved --approval-mode github`) the evidence must be a review or comment on GitHub
-by a human owner, member or collaborator, checked through `gh`. Approvals made in the default local
-mode are now marked `verification = "unverified"`; approvals recorded earlier stay valid. Upgrading
-the Python package does not overwrite project configuration, and that includes the guards under
-`hooks/`, so run `update-hooks` to get the guards this version ships, and only then regenerate the
-adapter (`generate codex --force` for Codex): regenerated settings can name a guard an older
-project does not have, and a missing guard file fails every tool call it guards closed. See
+Version 0.9.0 adds `agentkit upgrade`, which brings the guards under `hooks/` and the files of
+every adapter in use up to what the installed version writes, guards first, and replaces running
+`update-hooks` and `generate <adapter> --force` by hand. `agentkit doctor` now reports those files
+and exits `1` when one is outdated or missing. Upgrading the Python package does not change a
+project, so run `upgrade` after it, and commit `.agent/generated.json` with the files. A project
+set up by 0.8.0 or earlier has no record of what was generated, so a file that differs from what
+this version writes, such as a guard edited by hand, is reported as of unknown origin and kept.
+If `doctor` lists one, run `agentkit upgrade --force` to replace it and re-apply any edits of your
+own (`git diff` shows them); from then on the record tells an older file from an edited one. See
 [release notes](CHANGELOG.md) for the full changes.
 
 For local development:
