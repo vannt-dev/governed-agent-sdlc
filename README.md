@@ -15,9 +15,18 @@
 
 </div>
 
-Governed Agent SDLC is a cross-platform toolkit for AI coding agents. It separates a
-tool-neutral workflow kernel from project profiles and vendor adapters, so the same approval,
-security, artifact, review, and QA rules can be applied to different technology stacks.
+Governed Agent SDLC keeps one workflow policy for four AI coding agents: Claude Code, Codex,
+OpenCode and Antigravity. The roles, artifact lifecycle, approval rules and protected areas live in
+a tool-neutral core and one project manifest, and `agentkit generate` turns them into each agent's
+own configuration; none of them keeps a parallel policy file. Stack profiles supply each stack's
+commands and exclusions. [Maturity](#maturity) says which guards each agent enforces.
+
+Human approvals can be checked against GitHub. With `[review].approval_mode = "github"` (or
+`--approval-mode github` on an artifact transition), `agentkit artifact transition ... approved`
+and `agentkit review approve` accept an approval only when its evidence is a pull request review
+(or, for an artifact, an issue or pull request comment) in this repository, written by a human
+owner, member or collaborator, as looked up through `gh`.
+In the default local mode an approval is recorded as given and marked `unverified`.
 
 The project is intentionally **human-in-the-loop**. It helps agents work predictably; it does not
 grant an AI permission to approve, merge, release, or retrieve credentials.
