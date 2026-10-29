@@ -465,7 +465,8 @@ def _doctor(path: Path, output_format: str = "text") -> int:
             current = sum(item.status == "current" for item in generated)
             print(
                 f"Generated files: {current} of {len(generated)} current, "
-                f"{len(stale)} outdated, missing or of unknown origin."
+                f"{len(stale)} outdated or missing, "
+                f"{sum(item.status == 'unknown' for item in generated)} of unknown origin."
             )
     return 0 if ok else 1
 

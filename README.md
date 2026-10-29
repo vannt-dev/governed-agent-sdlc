@@ -106,11 +106,11 @@ not overwritten. A fresh project receives the stack profiles and a minimal `AGEN
 generated roles always have the instructions they reference.
 
 `agentkit doctor` also compares the guards under `hooks/` and the files of each adapter in use with
-what the installed version writes, and exits `1` when one is outdated, missing, or differs without
-a record, so CI can catch a project left behind by a package upgrade. `agentkit upgrade` rewrites
-those files and keeps the ones edited by hand unless `--force` is given; `--dry-run` shows what it
-would change. Generated files are recorded by hash in `.agent/generated.json`; commit it with them.
-See the
+what the installed version writes, and exits `1` when one is outdated or missing, so CI can catch a
+project left behind by a package upgrade; a file that differs without a record only warns.
+`agentkit upgrade` rewrites those files and keeps the ones edited by hand unless `--force` is
+given; `--dry-run` shows what it would change. Generated files are recorded by hash in
+`.agent/generated.json`; commit it with them. See the
 [CLI reference](docs/cli.md#keeping-generated-files-current).
 
 Name the stack when you initialize, and the manifest starts with its profile and its commands

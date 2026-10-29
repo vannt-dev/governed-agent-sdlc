@@ -19,15 +19,16 @@ from agentkit.generator import (
 )
 
 # Statuses that make `agentkit doctor` fail: the project does not run what this version ships.
-FAILING = ("missing", "outdated", "unknown")
+# `unknown` only warns: without a record, older output and a deliberate edit look the same.
+FAILING = ("missing", "outdated")
 
 HINTS = {
     "missing": "run `agentkit upgrade` to add it",
     "outdated": "written by an older version; run `agentkit upgrade`",
     "modified": "edited by hand; kept by `agentkit upgrade` unless --force",
     "unknown": "differs and has no generation record, so an edit cannot be told apart; "
-    "check `agentkit upgrade --dry-run`, then run `agentkit upgrade --force` "
-    "and re-apply any edits of your own",
+    "check `agentkit upgrade --dry-run`, and `agentkit upgrade --force` replaces it "
+    "(re-apply any edits of your own)",
 }
 
 

@@ -41,12 +41,13 @@ every adapter in use (one with a file on disk) with today's output:
 | `missing` | An adapter in use lacks a file this version writes | yes | adds it |
 | `outdated` | Still what an older version wrote (hash matches the record) | yes | rewrites it |
 | `modified` | Edited since it was written (hash differs from the record) | no, it is reported | keeps it unless `--force` |
-| `unknown` | Differs and has no record, so an edit cannot be told apart | yes | keeps it unless `--force` |
+| `unknown` | Differs and has no record, so an edit cannot be told apart | no, it is reported | keeps it unless `--force` |
 
-A project generated before the record existed reports its older files as `unknown`. Check
-`agentkit upgrade --dry-run`, run `agentkit upgrade --force`, and re-apply any edits of your own
-(`git diff` shows them); from then on the record tells the two apart. `doctor` exits `1` while a
-file fails, which makes it usable as a CI step; `--format json` lists every file under
+A project generated before the record existed reports its older files as `unknown`, a warning
+that does not change the exit code. Check `agentkit upgrade --dry-run`, run
+`agentkit upgrade --force`, and re-apply any edits of your own (`git diff` shows them); from then
+on the record tells the two apart. `doctor` exits `1` while a file is `outdated` or `missing`,
+which makes it usable as a CI step; `--format json` lists every file under
 `generated.files` with its `path`, `component` and `status`. `upgrade` prints each file it adds,
 updates or keeps, and writes guards before adapter files, so it replaces running `update-hooks` and
 `generate <adapter> --force` by hand. It covers `hooks/` and adapter output only, never `core/`,
@@ -138,7 +139,7 @@ target versions instead of guessing at a rewrite.
 
 - `0`: command completed and validation found no errors.
 - `1`: validation completed with one or more project errors, `doctor` found a generated file
-  outdated, missing or of unknown origin, or no command handler completed.
+  outdated or missing, or no command handler completed.
 - `2`: invalid project configuration, artifact operation, filesystem operation, or unsupported
   migration prevented the command from completing.
 

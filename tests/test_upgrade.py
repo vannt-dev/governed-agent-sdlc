@@ -119,7 +119,7 @@ class DoctorGeneratedFilesTests(unittest.TestCase):
             self.assertEqual(0, result)
             self.assertEqual("modified", statuses(report)[".claude/agents/qa.md"])
 
-    def test_unrecorded_differing_file_fails_doctor(self) -> None:
+    def test_unrecorded_differing_file_warns_without_failing(self) -> None:
         # a project generated before the record existed cannot tell old output from an edit
         with tempfile.TemporaryDirectory() as temp:
             project = Path(temp) / "project"
@@ -128,10 +128,32 @@ class DoctorGeneratedFilesTests(unittest.TestCase):
             guard = project / "hooks" / "guard_git.py"
             guard.write_text("# an older guard\n", encoding="utf-8")
             result, report = doctor_json(project)
-            self.assertEqual(1, result)
+            self.assertEqual(0, result)
+            self.assertTrue(report["ok"])
+            self.assertEqual(0, report["generated"]["problems"])  # type: ignore[index]
             found = statuses(report)
             self.assertEqual("unknown", found["hooks/guard_git.py"])
             self.assertEqual("current", found["hooks/guard_role_gate.py"])
+
+            result, text = run("doctor", str(project))
+            self.assertEqual(0, result)
+            self.assertIn("UNKNOWN: hooks/guard_git.py", text)
+            self.assertIn("agentkit upgrade --force", text)
+
+    def test_unknown_file_does_not_hide_an_outdated_one(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp) / "project"
+            run("init", str(project), "--adapter", "claude-code")
+            make_outdated(project, ".claude/settings.json")
+            agent = project / ".claude" / "agents" / "qa.md"
+            agent.write_text("old\n", encoding="utf-8")
+            record = json.loads((project / RECORD).read_text(encoding="utf-8"))
+            del record["files"][".claude/agents/qa.md"]
+            (project / RECORD).write_text(json.dumps(record), encoding="utf-8")
+            result, report = doctor_json(project)
+            self.assertEqual(1, result)
+            self.assertEqual(1, report["generated"]["problems"])  # type: ignore[index]
+            self.assertEqual("unknown", statuses(report)[".claude/agents/qa.md"])
 
     def test_line_endings_do_not_count_as_changes(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -208,7 +230,9 @@ class UpgradeTests(unittest.TestCase):
             self.assertEqual(0, result)
             self.assertIn(".claude/agents/qa.md", output)
             self.assertEqual("old\n", agent.read_text(encoding="utf-8"))
-            self.assertEqual(1, doctor_json(project)[0])
+            result, report = doctor_json(project)
+            self.assertEqual(0, result)
+            self.assertEqual("unknown", statuses(report)[".claude/agents/qa.md"])
 
             result, output = run("upgrade", str(project), "--force")
             self.assertEqual(0, result)

@@ -22,7 +22,9 @@ profiles, a manifest, and minimal `AGENTS.md` instructions before generating the
 
 After upgrading the package in an existing project, run `agentkit doctor`: it reports the guards and
 adapter files older than the installed version writes. `agentkit upgrade` rewrites them, guards
-first, and keeps files edited by hand unless `--force` is given. Commit `.agent/generated.json`
+first, and keeps files edited by hand unless `--force` is given. A project generated before
+`.agent/generated.json` existed gets an `unknown` warning for each file that differs; check
+`agentkit upgrade --dry-run` and replace them with `--force`. Commit `.agent/generated.json`
 with them, and add `agentkit doctor` to CI to catch a project left behind. Doing it by hand means
 `agentkit update-hooks` and then `agentkit generate <adapter> --force`, in that order: the guards
 are code the project copied at `init`, and regenerated settings may name a guard it does not have
