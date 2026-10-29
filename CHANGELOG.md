@@ -3,6 +3,36 @@
 All notable changes to Governed Agent SDLC are documented here. The project follows Semantic
 Versioning while its public interfaces remain alpha.
 
+## [0.9.0] - 2026-10-29
+
+### Upgrade notes
+
+- After upgrading the package, run `agentkit upgrade` instead of `agentkit update-hooks` followed
+  by `agentkit generate <adapter> --force`, and commit `.agent/generated.json` with the files. A
+  project set up by 0.8.0 or earlier has no generation record yet, so a guard or adapter file that
+  differs from what this version writes, such as one edited by hand, is reported as of unknown
+  origin and kept; `agentkit upgrade --force` replaces it, after which edits of your own must be
+  re-applied.
+- `agentkit doctor` now exits `1` when a guard or adapter file is outdated or missing, so a CI step
+  that runs it can fail after a package upgrade until `agentkit upgrade` is run.
+
+### Added
+
+- `agentkit upgrade [--force] [--dry-run]` rewrites the guards under `hooks/` and the files of every
+  adapter in use that are older than the installed version writes, and adds missing ones, guards
+  first. Files edited by hand are kept unless `--force` is given; `--dry-run` shows what would
+  change.
+- `agentkit doctor` compares the guards and adapter files with what the installed version writes
+  and reports each as current, outdated, missing, modified or of unknown origin. Outdated and
+  missing files fail it; modified and unknown files only warn. `--format json` lists them under
+  `generated.files`.
+- `init`, `generate`, `update-hooks` and `upgrade` record the hash of every file they write in
+  `.agent/generated.json`, which tells a file an older version wrote from one edited by hand.
+
+### Changed
+
+- The README and site lead with one policy for four agents and GitHub-verified approvals.
+
 ## [0.8.0] - 2026-10-21
 
 ### Added
@@ -195,6 +225,7 @@ Versioning while its public interfaces remain alpha.
   deterministic safety hooks, cross-platform CI, GitHub Pages site, GitHub Release automation, and
   PyPI Trusted Publishing.
 
+[0.9.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.5.0...v0.6.0

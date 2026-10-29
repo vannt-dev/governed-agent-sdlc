@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "governed-agent-sdlc"
-version = "0.8.0"
+version = "0.9.0"
 description = "A governed, cross-platform SDLC toolkit for AI coding agents."
 readme = "README.md"
 requires-python = ">=3.11"
