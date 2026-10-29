@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "files": {
+    ".claude/agents/architect.md": {
+      "sha256": "ddd7af9159c4169fa4ffb11b9cb55d248f672e33806604de86858af29337fb74",
+      "agentkit": "0.8.0"
+    },
+    ".claude/agents/developer.md": {
+      "sha256": "18c7f3f60fc60e299d90d371dc1db74bdbbce24dce48cb9e74c27c835f3bd9d7",
+      "agentkit": "0.8.0"
+    },
+    ".claude/agents/planner.md": {
+      "sha256": "63cb3c60d90a3851a1a4f489d959e88be1e0a0a193ae23ec0fe7728a30764d92",
+      "agentkit": "0.8.0"
+    },
+    ".claude/agents/publisher.md": {
+      "sha256": "93579bffc2af62969ed495c01a550d7c9f072843c5df280d1c18c3507eee5091",
+      "agentkit": "0.8.0"
+    },
+    ".claude/agents/qa.md": {
+      "sha256": "b2662e6f3cc78dd00d4044d008aae0798d1b3f30785136ec1608c2f5a345e8a0",
+      "agentkit": "0.8.0"
+    },
+    ".claude/agents/reviewer.md": {
+      "sha256": "86d449d54196dc9180720745a5650e08beb22a96cf9f0cb935af98cc75152aa6",
+      "agentkit": "0.8.0"
+    },
+    ".claude/settings.json": {
+      "sha256": "4234c724a57bfaa3f2f3e26c138e873a2602686bbc99c239d1197ce94cbd7801",
+      "agentkit": "0.8.0"
+    },
+    "hooks/common.py": {
+      "sha256": "cc5374378f85a56380735d7510d917a178794d89397d865641cdd39228a64bea",
+      "agentkit": "0.8.0"
+    },
+    "hooks/guard_credentials.py": {
+      "sha256": "9a0661a145b1835a5119598c22a16f1c1d365f5f1a926122e03ada759d7adfdf",
+      "agentkit": "0.8.0"
+    },
+    "hooks/guard_git.py": {
+      "sha256": "e81689874685d510fed42ea75952ae0ff0c2111f71aecd4e1a1ef3a399af35cb",
+      "agentkit": "0.8.0"
+    },
+    "hooks/guard_role_gate.py": {
+      "sha256": "2b56b371bca1feb2eda0356b45d6f3e4f77b0c106c888b33c56ba087ebf6b844",
+      "agentkit": "0.8.0"
+    },
+    "hooks/guard_role_scope.py": {
+      "sha256": "b90db9c1c18f52a52a5ddbef8c0876d1be85ad2bb0d3b41146c73a5ea71583ee",
+      "agentkit": "0.8.0"
+    }
+  }
+}

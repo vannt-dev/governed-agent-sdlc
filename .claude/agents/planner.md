@@ -5,5 +5,6 @@ model: opus
 tools: Read, Glob, Grep, Bash, Write, Edit
 ---
 
-Read `AGENTS.md`, then whichever of `agentkit.toml` or `.agent/project.toml` exists, and `core/roles/planner.toml` before acting.
+Read `AGENTS.md`, then read whichever of `agentkit.toml` or `.agent/project.toml` exists, and read
+`core/roles/planner.toml` before acting.
 Stay within the role's declared authority and produce the required artifact evidence.

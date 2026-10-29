@@ -5,6 +5,7 @@
 - `agentkit init [path] [--name NAME] [--adapter none|claude-code|codex|opencode|antigravity] [--profile ID]... [--dry-run]`
 - `agentkit validate [path] [--format text|json]`
 - `agentkit doctor [path] [--format text|json]`
+- `agentkit upgrade [path] [--force] [--dry-run] [--format text|json]`
 - `agentkit generate claude-code|codex|opencode|antigravity [path] [--force] [--dry-run]`
 - `agentkit update-hooks [path] [--dry-run] [--format text|json]`
 - `agentkit migrate [path] [--to-version VERSION] [--dry-run]`
@@ -25,6 +26,32 @@ ships and adds any that are missing; `init` never overwrites that folder. Run it
 the package and before `generate claude-code --force`, because regenerated settings can register a
 guard an older project does not have. It reports what it added, updated and left unchanged, and
 leaves files the package does not ship alone.
+
+## Keeping generated files current
+
+Upgrading the package changes nothing in a project, so the guards under `hooks/` and the files
+`generate` wrote can fall behind what the installed version would write. `init`, `generate`,
+`update-hooks` and `upgrade` record the SHA-256 of every file they write in `.agent/generated.json`
+(line endings are ignored); commit it with the files. `doctor` compares each file of `hooks/` and of
+every adapter in use (one with a file on disk) with today's output:
+
+| Status | Meaning | Fails `doctor` | `upgrade` |
+| --- | --- | --- | --- |
+| `current` | Same as this version writes | no | leaves it, and records it |
+| `missing` | An adapter in use lacks a file this version writes | yes | adds it |
+| `outdated` | Still what an older version wrote (hash matches the record) | yes | rewrites it |
+| `modified` | Edited since it was written (hash differs from the record) | no, it is reported | keeps it unless `--force` |
+| `unknown` | Differs and has no record, so an edit cannot be told apart | no, it is reported | keeps it unless `--force` |
+
+A project generated before the record existed reports its older files as `unknown`, a warning
+that does not change the exit code. Check `agentkit upgrade --dry-run`, run
+`agentkit upgrade --force`, and re-apply any edits of your own (`git diff` shows them); from then
+on the record tells the two apart. `doctor` exits `1` while a file is `outdated` or `missing`,
+which makes it usable as a CI step; `--format json` lists every file under
+`generated.files` with its `path`, `component` and `status`. `upgrade` prints each file it adds,
+updates or keeps, and writes guards before adapter files, so it replaces running `update-hooks` and
+`generate <adapter> --force` by hand. It covers `hooks/` and adapter output only, never `core/`,
+`profiles/`, the manifest or `AGENTS.md`.
 
 `artifact new` takes the sections of every kind from `core/templates/<kind>.md`: the project's
 copy first, then the packaged one, so a project that was initialized before a template existed
@@ -111,7 +138,8 @@ target versions instead of guessing at a rewrite.
 ## Stable exit codes
 
 - `0`: command completed and validation found no errors.
-- `1`: validation completed with one or more project errors, or no command handler completed.
+- `1`: validation completed with one or more project errors, `doctor` found a generated file
+  outdated or missing, or no command handler completed.
 - `2`: invalid project configuration, artifact operation, filesystem operation, or unsupported
   migration prevented the command from completing.
 

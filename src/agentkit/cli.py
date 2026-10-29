@@ -36,6 +36,7 @@ from agentkit.generator import (
     update_hooks,
 )
 from agentkit.runs import EXIT_PROVIDER_ERROR, GateStatus
+from agentkit.upgrade import FAILING, HINTS, check_generated, upgrade_generated
 from agentkit.validator import validate_project
 
 # The tools a project can be generated for, by the name the command line and a manifest use.
@@ -71,9 +72,24 @@ def build_parser() -> argparse.ArgumentParser:
     validate.add_argument("path", nargs="?", default=".")
     _add_format(validate)
 
-    doctor = sub.add_parser("doctor", help="Check local prerequisites and configuration")
+    doctor = sub.add_parser(
+        "doctor", help="Check local prerequisites, configuration and generated files"
+    )
     doctor.add_argument("path", nargs="?", default=".")
     _add_format(doctor)
+
+    upgrade = sub.add_parser(
+        "upgrade",
+        help="Rewrite the guards and adapter files that are older than this version writes",
+    )
+    upgrade.add_argument("path", nargs="?", default=".")
+    upgrade.add_argument(
+        "--force",
+        action="store_true",
+        help="Also replace files edited by hand or of unknown origin",
+    )
+    upgrade.add_argument("--dry-run", action="store_true")
+    _add_format(upgrade)
 
     generate = sub.add_parser("generate", help="Generate an AI-tool adapter")
     generate.add_argument("adapter", choices=tuple(ADAPTERS))
@@ -219,6 +235,8 @@ def main(argv: list[str] | None = None) -> int:
             return _validate(Path(args.path), args.output_format)
         if args.command == "doctor":
             return _doctor(Path(args.path), args.output_format)
+        if args.command == "upgrade":
+            return _upgrade(args)
         if args.command == "generate":
             root = find_project_root(Path(args.path))
             generator = ADAPTERS[args.adapter]
@@ -405,16 +423,26 @@ def _doctor(path: Path, output_format: str = "text") -> int:
     findings = validate_project(path.resolve())
     errors = sum(item.level == "error" for item in findings)
     warnings = sum(item.level == "warning" for item in findings)
+    try:
+        generated = check_generated(find_project_root(path))
+    except ConfigError:
+        generated = []  # outside a project there is nothing generated to compare
+    stale = [item for item in generated if item.status in FAILING]
+    ok = errors == 0 and not stale
     if output_format == "json":
         details.update(
             {
-                "ok": errors == 0,
+                "ok": ok,
                 "errors": errors,
                 "warnings": warnings,
                 "findings": [
                     {"level": item.level, "path": str(item.path), "message": item.message}
                     for item in findings
                 ],
+                "generated": {
+                    "files": [item.as_dict() for item in generated],
+                    "problems": len(stale),
+                },
             }
         )
         print(json.dumps(details, sort_keys=True))
@@ -427,7 +455,45 @@ def _doctor(path: Path, output_format: str = "text") -> int:
         for finding in findings:
             print(finding)
         print(f"Validation complete: {errors} error(s), {warnings} warning(s).")
-    return 1 if errors else 0
+        if generated:
+            for item in generated:
+                if item.status != "current":
+                    print(f"{item.status.upper()}: {item.path}")
+            for status, hint in HINTS.items():
+                if any(item.status == status for item in generated):
+                    print(f"{status.capitalize()}: {hint}.")
+            current = sum(item.status == "current" for item in generated)
+            print(
+                f"Generated files: {current} of {len(generated)} current, "
+                f"{len(stale)} outdated or missing, "
+                f"{sum(item.status == 'unknown' for item in generated)} of unknown origin."
+            )
+    return 0 if ok else 1
+
+
+def _upgrade(args: argparse.Namespace) -> int:
+    root = find_project_root(Path(args.path))
+    changes = upgrade_generated(root, force=args.force, dry_run=args.dry_run)
+    if args.output_format == "json":
+        _emit({"dry_run": args.dry_run, "force": args.force, **changes}, "json", "")
+        return 0
+    if args.dry_run:
+        verbs = ("Would add", "Would update", "Would keep")
+    else:
+        verbs = ("Added", "Updated", "Kept")
+    for verb, key in zip(verbs, ("added", "updated", "kept"), strict=True):
+        note = " (differs from the generated file; --force replaces it)" if key == "kept" else ""
+        for item in changes[key]:
+            print(f"{verb} {item}{note}")
+    if not (changes["added"] or changes["updated"] or changes["kept"]):
+        print("Generated files are up to date.")
+    else:
+        print(
+            f"{'Would upgrade' if args.dry_run else 'Upgraded'} generated files: "
+            f"{len(changes['added'])} added, {len(changes['updated'])} updated, "
+            f"{len(changes['kept'])} kept, {len(changes['unchanged'])} unchanged."
+        )
+    return 0
 
 
 def _artifact_files(root: Path) -> list[Path]:

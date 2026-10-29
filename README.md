@@ -40,8 +40,8 @@ grant an AI permission to approve, merge, release, or retrieve credentials.
 - Six tool-neutral roles: architect, planner, developer, reviewer, QA, and publisher.
 - A structured artifact lifecycle with explicit approval evidence and supersession.
 - A TOML project manifest for repository layout, profiles, commands, and protected areas.
-- A dependency-free Python CLI: `init`, `generate`, `update-hooks`, `validate`, `doctor`, and
-  artifact commands.
+- A dependency-free Python CLI: `init`, `generate`, `update-hooks`, `upgrade`, `validate`,
+  `doctor`, and artifact commands.
 - Claude Code agent generation and safety hooks.
 - Native Codex project configuration and governed role generation.
 - OpenCode subagents with a guard plugin, and Antigravity agents with a guard hook
@@ -104,6 +104,14 @@ commands for automation. Preview additive initialization or adapter generation w
 Initialization is additive: existing `AGENTS.md`, manifest, core policy, hook, and adapter files are
 not overwritten. A fresh project receives the stack profiles and a minimal `AGENTS.md` so
 generated roles always have the instructions they reference.
+
+`agentkit doctor` also compares the guards under `hooks/` and the files of each adapter in use with
+what the installed version writes, and exits `1` when one is outdated or missing, so CI can catch a
+project left behind by a package upgrade; a file that differs without a record only warns.
+`agentkit upgrade` rewrites those files and keeps the ones edited by hand unless `--force` is
+given; `--dry-run` shows what it would change. Generated files are recorded by hash in
+`.agent/generated.json`; commit it with them. See the
+[CLI reference](docs/cli.md#keeping-generated-files-current).
 
 Name the stack when you initialize, and the manifest starts with its profile and its commands
 instead of the generic one:
