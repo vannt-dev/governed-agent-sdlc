@@ -1,0 +1,6 @@
+# actionlint 1.7.12 does not know job.workflow_sha yet; GitHub documents it in the job context
+# (https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#job-context).
+paths:
+  .github/workflows/reusable-agent-validation.yml:
+    ignore:
+      - 'property "workflow_sha" is not defined in object type'

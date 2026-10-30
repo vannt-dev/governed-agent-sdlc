@@ -1,0 +1,15 @@
+# Managed by repokeeper (https://github.com/vannt-dev/repokeeper). Edits are reported by `repokeeper check`. Keys and jobs you add yourself are left alone.
+
+rules:
+  # cache-cleanup.yml runs on pull_request_target only to delete a closed pull request's caches:
+  # it checks nothing out and reads only the pull request number.
+  dangerous-triggers:
+    ignore:
+      - cache-cleanup.yml
+  dependabot-cooldown:
+    ignore:
+      - dependabot.yml
+  unpinned-uses:
+    config:
+      policies:
+        vannt-dev/repokeeper/*: ref-pin
