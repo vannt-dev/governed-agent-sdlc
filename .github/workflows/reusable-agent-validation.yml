@@ -31,9 +31,12 @@ jobs:
     steps:
       - name: Check out caller repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Check out Governed Agent SDLC
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           repository: vannt-dev/governed-agent-sdlc
           # job.workflow_sha is the commit of this reusable file, not of the caller
           ref: ${{ inputs.toolkit-ref || job.workflow_sha }}
