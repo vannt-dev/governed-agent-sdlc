@@ -1,0 +1,21 @@
+%% Re-render both SVGs after editing, from the repository root:
+%% npx -y @mermaid-js/mermaid-cli@latest -i docs/diagrams/overview.mmd -c docs/diagrams/mermaid.config.json -b transparent -t default -o docs/diagrams/overview-light.svg
+%% npx -y @mermaid-js/mermaid-cli@latest -i docs/diagrams/overview.mmd -c docs/diagrams/mermaid.config.json -b transparent -t dark -o docs/diagrams/overview-dark.svg
+flowchart TB
+  subgraph policy["One policy in your repository"]
+    direction LR
+    core["core/<br/>roles, workflow, approval rules"]
+    manifest["agentkit.toml<br/>manifest and stack profiles"]
+    core ~~~ manifest
+  end
+  gen(["agentkit generate<br/>or agentkit upgrade"])
+  config["Each agent's own files<br/>Claude Code .claude/, Codex .codex/,<br/>OpenCode .opencode/, Antigravity .agents/"]
+  guards["Guards in hooks/<br/>credentials and git: all four agents<br/>role scope and gate: Claude Code"]
+  subgraph work["Governed work, artifacts in docs/agent/"]
+    direction LR
+    spec["Spec<br/>a human approves"] --> plan["Plan and tasks<br/>a human approves"] --> dev["Developer<br/>implements"] --> rev["Review,<br/>then QA"] --> pr["Human publish approval,<br/>then a pull request"]
+  end
+  policy --> gen --> config
+  gen --> guards
+  config -->|"the roles do the work"| work
+  guards -.->|"checked before tool calls"| work

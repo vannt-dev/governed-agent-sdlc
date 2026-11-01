@@ -21,6 +21,11 @@ a tool-neutral core and one project manifest, and `agentkit generate` turns them
 own configuration; none of them keeps a parallel policy file. Stack profiles supply each stack's
 commands and exclusions. [Maturity](#maturity) says which guards each agent enforces.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vannt-dev/governed-agent-sdlc/main/docs/diagrams/overview-dark.svg">
+  <img alt="agentkit generate or agentkit upgrade turns the core policy and the agentkit.toml manifest into each agent's own files and the guards in hooks/; the roles then take a change from an approved spec and plan through implementation, review and QA to a pull request after human publish approval." src="https://raw.githubusercontent.com/vannt-dev/governed-agent-sdlc/main/docs/diagrams/overview-light.svg">
+</picture>
+
 Human approvals can be checked against GitHub. With `[review].approval_mode = "github"` (or
 `--approval-mode github` on an artifact transition), `agentkit artifact transition ... approved`
 and `agentkit review approve` accept an approval only when its evidence is a pull request review
