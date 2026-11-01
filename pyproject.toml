@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling==1.32.4"]
+requires = ["hatchling==1.33.0"]
 build-backend = "hatchling.build"
 
 [project]
@@ -32,11 +32,11 @@ Changelog = "https://github.com/vannt-dev/governed-agent-sdlc/blob/main/CHANGELO
 dev = [
   "build==1.6.1",
   "coverage==7.17.0",
-  "hatchling==1.32.4",
-  "mypy==2.4.0",
+  "hatchling==1.33.0",
+  "mypy==2.4.1",
   "playwright==1.64.1",
   "PyYAML==6.0.3",
-  "ruff==0.17.2",
+  "ruff==0.17.3",
   "twine==7.0.0",
 ]
 
