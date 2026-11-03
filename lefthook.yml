@@ -4,11 +4,11 @@ pre-commit:
   jobs:
     - name: python:ruff-format
       glob: "*.py"
-      run: ruff format {staged_files}
+      run: uvx ruff format {staged_files}
       stage_fixed: true
     - name: python:ruff-check
       glob: "*.py"
-      run: ruff check --fix {staged_files}
+      run: uvx ruff check --fix {staged_files}
       stage_fixed: true
 commit-msg:
   jobs:
@@ -17,4 +17,4 @@ commit-msg:
 pre-push:
   jobs:
     - name: python:test
-      run: python -m pytest
+      run: uv run pytest

@@ -1,6 +1,6 @@
 {
   "lockVersion": 1,
-  "standard": "1.4.5",
+  "standard": "1.5.0",
   "entries": [
     {
       "id": "block:.gitattributes#editorconfig",
@@ -72,7 +72,7 @@
     {
       "id": "file:lefthook.yml",
       "module": "hooks",
-      "hash": "4e111be6374f4f5dbf497cdd4ba15ba0691d70222dc8968c6dda82aeeb846c9d",
+      "hash": "88d39276f987d014d913a13087a90d71cdcee91ad9d6919c699ffed2ebe8d454",
       "target": {
         "kind": "file",
         "path": "lefthook.yml"
@@ -106,13 +106,26 @@
     {
       "id": "yaml:.github/workflows/ci.yml#[\"jobs\",\"python\"]",
       "module": "ci",
-      "hash": "2b78b6eae7366b6ef87982697a2c484c4e46d75e63bea211959d4ceceb2a235e",
+      "hash": "d239f4a9d16b0bbe074803270cf4e419ac29dedd354ade9463a37b5dabaf3bce",
       "target": {
         "kind": "yaml",
         "path": ".github/workflows/ci.yml",
         "keyPath": [
           "jobs",
           "python"
+        ]
+      }
+    },
+    {
+      "id": "yaml:.github/workflows/ci.yml#[\"jobs\",\"result\"]",
+      "module": "ci",
+      "hash": "e2c852b6c387b1d33eaef74a2e6989d7545f01454a0b7f531391c321fd5a0118",
+      "target": {
+        "kind": "yaml",
+        "path": ".github/workflows/ci.yml",
+        "keyPath": [
+          "jobs",
+          "result"
         ]
       }
     },
