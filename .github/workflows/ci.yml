@@ -19,6 +19,23 @@ jobs:
     with:
       python-versions: '["3.11","3.12","3.13"]'
       os: '["ubuntu-latest"]'
-      manager: pip
-      install-command: python -m pip install -e . && python -m pip install ruff mypy pytest
-      commands: '["ruff format --check .","ruff check .","mypy","python -m pytest"]'
+      manager: uv
+      install-command: uv sync --frozen && uv pip install ruff mypy pytest
+      commands: '["uv run ruff format --check .","uv run ruff check .","uv run mypy","uv run pytest"]'
+  result:
+    name: CI result
+    if: always()
+    needs:
+      - python
+      - commits
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every job passed or was skipped
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "job results: $RESULTS"
+          case " $RESULTS " in
+            *" failure "*|*" cancelled "*) exit 1 ;;
+          esac
