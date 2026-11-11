@@ -113,7 +113,9 @@ jobs:
       - name: Install browser tooling
         run: |
           python -m pip install playwright==1.62.0
-          python -m playwright install --with-deps chromium
+          # On a GitHub runner --with-deps only adds font packages. When the runner cannot reach
+          # the Ubuntu mirrors, install the browser alone: the test below still decides.
+          python -m playwright install --with-deps chromium || python -m playwright install chromium
       - name: Run browser checks
         run: python tests/browser_checks.py
 
