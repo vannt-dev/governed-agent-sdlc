@@ -276,6 +276,15 @@ def _validate_artifacts(config: ProjectConfig, artifacts: list[Artifact]) -> lis
                         "A GitHub-verified approval must name approved_by as github:LOGIN",
                     )
                 )
+            if config.review["approval_mode"] == "github" and verification in (None, "unverified"):
+                findings.append(
+                    Finding(
+                        "error",
+                        artifact.path,
+                        "[review].approval_mode = github requires a GitHub-verified approval "
+                        '(verification = "github"); record it with agentkit artifact transition',
+                    )
+                )
 
     for artifact in artifacts:
         parent_value = artifact.metadata.get("parent", "")

@@ -182,6 +182,29 @@ class ArtifactApprovalTests(ProjectFixture):
         self.assertNotIn("verification", self.path.read_text(encoding="utf-8"))
         self.assert_valid()
 
+    def test_validate_in_github_mode_requires_a_verified_approval(self) -> None:
+        self.approve("--approved-by", "workspace-user", "--evidence", COMMENT)
+        text = self.path.read_text(encoding="utf-8")
+        self.github_mode()
+        hand_written = {
+            "unverified": text,
+            "no field": text.replace('verification = "unverified"\n', ""),
+        }
+        for name, content in hand_written.items():
+            with self.subTest(case=name):
+                self.path.write_text(content, encoding="utf-8")
+                self.assertIn(
+                    "approval_mode = github",
+                    "\n".join(str(f) for f in validate_project(self.project)),
+                )
+        self.path.write_text(
+            text.replace('"workspace-user"', '"github:lead"').replace(
+                'verification = "unverified"', 'verification = "github"'
+            ),
+            encoding="utf-8",
+        )
+        self.assert_valid()
+
 
 class SharedVerifierTests(unittest.TestCase):
     def test_review_and_artifact_paths_share_the_collaborator_check(self) -> None:
