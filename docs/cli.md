@@ -179,7 +179,9 @@ A comment proves who wrote it, not what it says: whoever reads the evidence judg
 approves the artifact. Verification is a check at transition time; the record lives in the
 repository, so its protection is the pull request review of that change. `agentkit validate`
 accepts records without a `verification` field (written before it existed), rejects unknown
-values, and requires a `github` record to name a `github:LOGIN`.
+values, and requires a `github` record to name a `github:LOGIN`. In a project configured for
+`github` it also rejects every approval that is not `verification = "github"`, including records
+without the field, so a project that switches to `github` must re-approve its older artifacts.
 
 ## Testing the installed OCR integration
 

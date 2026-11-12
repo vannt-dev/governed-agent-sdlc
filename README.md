@@ -149,7 +149,8 @@ evidence, and CI validates that the fields exist. By default (`[review].approval
 as for `review approve`) the approval is recorded as given and marked
 `verification = "unverified"`. With `approval_mode = "github"`, or `--approval-mode github` on the
 command, the CLI checks through `gh` that the review or comment URL is in this repository and was
-written by a human collaborator, and records that login (`github:LOGIN`) as the approver; see
+written by a human collaborator, and records that login (`github:LOGIN`) as the approver. In a
+`github` project, `agentkit validate` rejects any approval not recorded that way; see
 [artifact approval verification](docs/cli.md#artifact-approval-verification).
 
 ## Project manifest
