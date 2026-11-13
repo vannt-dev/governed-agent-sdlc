@@ -68,22 +68,18 @@ agentkit doctor
 Upgrade an existing installation to this release:
 
 ```bash
-python -m pip install --upgrade governed-agent-sdlc==0.9.0
+python -m pip install --upgrade governed-agent-sdlc==0.10.0
 agentkit --version
 agentkit upgrade --dry-run
 agentkit upgrade
 agentkit doctor
 ```
 
-Version 0.9.0 adds `agentkit upgrade`, which brings the guards under `hooks/` and the files of
-every adapter in use up to what the installed version writes, guards first, and replaces running
-`update-hooks` and `generate <adapter> --force` by hand. `agentkit doctor` now reports those files
-and exits `1` when one is outdated or missing. Upgrading the Python package does not change a
-project, so run `upgrade` after it, and commit `.agent/generated.json` with the files. A project
-set up by 0.8.0 or earlier has no record of what was generated, so a file that differs from what
-this version writes, such as a guard edited by hand, is reported as of unknown origin and kept.
-If `doctor` lists one, run `agentkit upgrade --force` to replace it and re-apply any edits of your
-own (`git diff` shows them); from then on the record tells an older file from an edited one. See
+Version 0.10.0 makes `agentkit validate` enforce `[review].approval_mode = "github"`: in such a
+project every artifact approval must be GitHub-verified, so approvals made in local mode or recorded
+before 0.8.0 now fail until they are re-approved with `agentkit artifact transition ... approved
+--approval-mode github`. Projects in the default `local` mode are not affected. Run `upgrade` after
+upgrading the package, as since 0.9.0, and commit `.agent/generated.json` with the files. See
 [release notes](CHANGELOG.md) for the full changes.
 
 For local development:
