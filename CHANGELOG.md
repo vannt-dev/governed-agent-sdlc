@@ -3,6 +3,21 @@
 All notable changes to Governed Agent SDLC are documented here. The project follows Semantic
 Versioning while its public interfaces remain alpha.
 
+## [0.10.0] - 2026-11-13
+
+### Upgrade notes
+
+- In a project with `[review].approval_mode = "github"`, `agentkit validate` now fails on every
+  artifact approval that is not GitHub-verified, including approvals made in local mode and records
+  written before 0.8.0 that have no `verification` field. Re-approve those artifacts with
+  `agentkit artifact transition ... approved --approval-mode github` before upgrading a CI step
+  that runs `validate`. Projects in the default `local` mode are not affected.
+
+### Fixed
+
+- `agentkit validate` enforces `[review].approval_mode = "github"`: before, it accepted a
+  hand-written approval marked `unverified` or without a `verification` field in that mode.
+
 ## [0.9.0] - 2026-10-29
 
 ### Upgrade notes
@@ -225,6 +240,7 @@ Versioning while its public interfaces remain alpha.
   deterministic safety hooks, cross-platform CI, GitHub Pages site, GitHub Release automation, and
   PyPI Trusted Publishing.
 
+[0.10.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.6.0...v0.7.0
