@@ -140,6 +140,8 @@ def locate(target: str, cwd: str | None) -> str | None:
         target = re.sub(r"^/([A-Za-z])(?=/|$)", r"\1:", target)
         if re.fullmatch(r"[A-Za-z]:", target):
             target += "/"
+    else:  # PowerShell and cmd.exe paths use `\` between folders on every system
+        target = target.replace("\\", "/")
     if cwd is None and not os.path.isabs(target):
         return None
     return os.path.normcase(os.path.abspath(os.path.join(cwd or "", target)))
