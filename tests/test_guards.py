@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import importlib.util
 import io
+import os
 import tempfile
 import unittest
 from pathlib import Path
 
+from agentkit import codex_hook
 from agentkit.codex_hook import evaluate as codex_evaluate
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -161,6 +163,240 @@ class GitGuardTests(unittest.TestCase):
     def test_blocks_force_refspec(self) -> None:
         data = {"tool_input": {"command": "git push origin +HEAD:feature/example"}}
         self.assertIsNotNone(git_guard.evaluate(data))
+
+
+# A workspace that exists only as text: the rules compare paths, they do not open them.
+WORKSPACE = os.path.abspath(os.path.join(os.sep, "work", "project"))
+
+# Commands the git and delete rules let through: text that only names a rule, and deletes of a
+# named path inside the workspace.
+SHELL_ALLOWED_COMMANDS = (
+    'echo "a; rm -rf /"',
+    "echo 'git push --force is forbidden'",
+    'git commit -m "never git push --force or rm -rf ~"',
+    'git log --grep "push main"',
+    'grep -rn "git reset --hard" docs/',
+    "git status # rm -rf /",
+    "cat <<'EOF' > notes.md\nnever run rm -rf / or git push --force\nEOF",
+    "git push origin feature/example",
+    "git push -u origin feature; echo main",
+    "git push origin feature && rm -f notes.txt",
+    "git checkout -b feature",
+    "git checkout main",
+    "git reset --soft HEAD~1",
+    "git clean -n",
+    "rm notes.txt",
+    "rm -f notes.txt",
+    "rm -rf build",
+    "rm -rf ./build dist node_modules",
+    "rm -rf build/*",
+    "rm -r -f build/cache",
+    "rm --recursive --force build",
+    'rm -rf "build dir/with space"',
+    "rm -rf build 2>/dev/null || true",
+    "rm -rf $PWD/build",
+    f"rm -rf {WORKSPACE}/build",
+    "cd packages/app && rm -rf dist",
+    "(cd docs && rm -rf _build)",
+    "pushd docs && make html && popd && rm -rf build",
+    "FOO=1 rm -rf build",
+    "sudo rm -rf build",
+    "bash -c 'rm -rf build && echo done'",
+    'find . -name "*.pyc" | xargs rm -f',
+    "echo $(date) > build/stamp",
+    "rmdir build",
+    "rd /s /q build",
+    "rd /s /q build\\cache",
+    "Remove-Item -Recurse -Force build",
+    "echo 'a quote left open",
+)
+
+# Commands the git and delete rules refuse, in every form a shell runs them.
+SHELL_DENIED_COMMANDS = (
+    # the delete targets
+    "rm -rf /",
+    "rm -fr ~",
+    "rm -r -f $HOME",
+    'rm --recursive --force "$HOME/"',
+    "rm -R .",
+    "rm -r ..",
+    "rm -rf *",
+    "rm -rf ./*",
+    "rm -rf .*",
+    "rm -rf .git",
+    "rm -rf ./.git/hooks",
+    "rm -rf packages/app/.git",
+    "rm -rf .g*",
+    "rm -rf /tmp/other",
+    "rm -rf ../sibling",
+    "rm -rf build/../..",
+    "rm -rf ~/projects",
+    "rm -rf build /",
+    "rm -rf -- /",
+    'rm -rf "$TARGET"',
+    "rm -rf $(cat list.txt)",
+    "rm -rf build/{a,../..}",
+    # chains, subshells and substitutions
+    "echo a; rm -rf /",
+    "git status && rm -rf /",
+    "git status || rm -rf ~",
+    "true | rm -rf /",
+    "git status\nrm -rf /",
+    "echo $(rm -rf /)",
+    "echo `rm -rf ~`",
+    'echo "$(rm -rf /)"',
+    "(rm -rf /)",
+    "{ rm -rf /; }",
+    "rm -rf build 2>/dev/null; rm -rf /",
+    "nohup rm -rf / &",
+    # a command line inside a command line
+    "bash -c 'rm -rf ~'",
+    'sh -c "cd / && rm -rf *"',
+    'bash -lc "rm -rf /"',
+    "bash -c \"bash -c 'rm -rf /'\"",
+    'eval "rm -rf /"',
+    "eval rm -rf ..",
+    # prefixes and wrappers
+    "FOO=1 rm -rf /",
+    'FOO=1 BAR="x y" rm -rf ~',
+    "sudo rm -rf /",
+    "sudo -u root rm -rf /",
+    "command rm -rf ~",
+    "env FOO=1 rm -rf /",
+    "/bin/rm -rf /",
+    "\\rm -rf /",
+    "ls | xargs rm -rf",
+    "find . -type d | xargs -n 1 rm -rf",
+    # where the command stands
+    "cd /tmp && rm -rf build",
+    "cd .. && rm -rf project",
+    "cd build && rm -rf .",
+    "cd build; rm -rf *",
+    'cd "$SOMEWHERE" && rm -rf build',
+    "(cd build/a); rm -rf ../x",
+    # cmd.exe and PowerShell
+    "rd /s /q ..",
+    "rmdir /S /Q .git",
+    "del /s /q *",
+    "Remove-Item -Recurse -Force ..",
+    "Remove-Item -Recurse -Force $env:USERPROFILE",
+    "rm -Recurse -Force ~",
+    "ri -r -fo .git",
+    'cmd /c "rd /s /q .."',
+    'powershell -Command "Remove-Item -Recurse -Force .."',
+    # git, read as words
+    "git push --force origin feature",
+    "git push --force-with-lease origin feature",
+    "git push origin main",
+    'git push origin "main"',
+    "git push origin HEAD:refs/heads/main",
+    "git push origin :main",
+    "FOO=1 git push origin +HEAD:feature",
+    "git status && git push --force origin feature",
+    "bash -c 'git push -f origin feature'",
+    "echo x | git push origin main",
+    "git reset --hard",
+    "git -C repo reset --hard",
+    "git reset HEAD~1 --hard",
+    "sudo git reset --hard",
+    "git clean -fdx",
+    "git clean -d -f",
+    "git -c core.x=y clean -fd",
+    "git checkout -- .",
+    "git checkout HEAD -- src/app.py",
+    # a line that cannot be read and names a guarded command
+    'rm -rf "build',
+    "git commit -m 'a quote left open",
+    "echo $(rm -rf /",
+)
+
+# The PowerShell tool: `\` is part of a path, the backquote escapes, a here-string is data.
+POWERSHELL_ALLOWED_COMMANDS = (
+    "Remove-Item -Recurse -Force .\\build\\cache",
+    "Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue",
+    'Write-Host "say `"rm -rf /`""',
+    "git commit -m @'\nit's done; never git push --force\n'@",
+    "Get-ChildItem build | Where-Object { $_.Name -like 'x*' }",
+)
+POWERSHELL_DENIED_COMMANDS = (
+    "Remove-Item -Recurse -Force ..\\other",
+    "Remove-Item -Path . -Recurse",
+    "Get-ChildItem | ForEach-Object { Remove-Item -Recurse -Force $_ }",
+    "git status; Remove-Item -Recurse -Force ~",
+    "git push --force origin feature",
+)
+
+
+class ShellCommandTests(unittest.TestCase):
+    """The git and delete rules read a command line as the commands it runs.
+
+    The Claude Code guard and the Codex hook apply one policy; both must agree.
+    """
+
+    reasons = (("claude", git_guard.shell_reason), ("codex", codex_hook.shell_reason))
+
+    def check(self, commands: tuple[str, ...], *, powershell: bool, denied: bool) -> None:
+        for name, reason in self.reasons:
+            for command in commands:
+                with self.subTest(hook=name, command=command):
+                    found = reason(command, WORKSPACE, WORKSPACE, powershell)
+                    if denied:
+                        self.assertIsNotNone(found)
+                    else:
+                        self.assertIsNone(found)
+
+    def test_text_that_names_a_rule_and_deletes_inside_the_workspace_are_allowed(self) -> None:
+        self.check(SHELL_ALLOWED_COMMANDS, powershell=False, denied=False)
+
+    def test_commands_that_run_are_denied_in_every_form(self) -> None:
+        self.check(SHELL_DENIED_COMMANDS, powershell=False, denied=True)
+
+    def test_powershell_commands(self) -> None:
+        self.check(POWERSHELL_ALLOWED_COMMANDS, powershell=True, denied=False)
+        self.check(POWERSHELL_DENIED_COMMANDS, powershell=True, denied=True)
+
+    def test_both_hooks_carry_the_same_text(self) -> None:
+        codex = (ROOT / "src" / "agentkit" / "codex_hook.py").read_text(encoding="utf-8")
+        reader = (ROOT / "hooks" / "command_line.py").read_text(encoding="utf-8")
+        rules = (ROOT / "hooks" / "guard_git.py").read_text(encoding="utf-8")
+        self.assertIn(reader[reader.index("class CommandParseError(") :].rstrip(), codex)
+        self.assertIn(
+            rules[rules.index("PROTECTED_REF = re.compile(") : rules.index("def evaluate(")],
+            codex,
+        )
+
+    def test_the_reason_names_the_target(self) -> None:
+        reason = git_guard.shell_reason("git status && rm -rf ../x", WORKSPACE, WORKSPACE)
+        self.assertIn("../x", str(reason))
+        self.assertIn("outside the workspace", str(reason))
+
+    def test_the_workspace_is_the_project_of_the_guard(self) -> None:
+        for name, evaluate in (("claude", git_guard.evaluate), ("codex", codex_evaluate)):
+            with self.subTest(hook=name):
+                inside = {"cwd": str(ROOT), "tool_input": {"command": "rm -rf .temp/build"}}
+                self.assertIsNone(evaluate(inside))
+                below = {"cwd": str(ROOT / "docs"), "tool_input": {"command": "rm -rf ../.temp"}}
+                self.assertIsNone(evaluate(below))
+                above = {"cwd": str(ROOT), "tool_input": {"command": "rm -rf ../elsewhere"}}
+                self.assertIsNotNone(evaluate(above))
+                shell = {
+                    "cwd": str(ROOT),
+                    "tool_name": "PowerShell",
+                    "tool_input": {"command": "Remove-Item -Recurse -Force .\\.temp\\build"},
+                }
+                self.assertIsNone(evaluate(shell))
+
+    def test_a_worktree_elsewhere_is_its_own_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            worktree = Path(directory).resolve() / "worktree"
+            (worktree / "src").mkdir(parents=True)
+            (worktree / ".git").write_text("gitdir: elsewhere\n", encoding="utf-8")
+            for name, evaluate in (("claude", git_guard.evaluate), ("codex", codex_evaluate)):
+                with self.subTest(hook=name):
+                    data = {"cwd": str(worktree / "src"), "tool_input": {"command": "rm -rf ../x"}}
+                    self.assertIsNone(evaluate(data))
+                    data["tool_input"] = {"command": "rm -rf ../../x"}
+                    self.assertIsNotNone(evaluate(data))
 
 
 class RoleScopeGuardTests(unittest.TestCase):
