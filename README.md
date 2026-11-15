@@ -198,7 +198,13 @@ are restricted to Markdown files below the active project's `docs/agent/` direct
 - `adapters/` and generated tool files translate the core; they do not redefine it.
 - `hooks/` enforce deterministic safety rules. Prompts explain behavior but are not security controls.
 - Hook input is fail-closed: malformed input is denied, as are credential paths/environment dumps,
-  force pushes, and direct protected-branch refspecs.
+  force pushes, direct protected-branch refspecs, destructive git commands, and a recursive delete
+  (`rm -rf`, `rd /s`, `Remove-Item -Recurse`) of anything but a named path inside the workspace:
+  `/`, `~`, `$HOME`, `.`, `..`, `*`, `.git`, a path outside it.
+- The git and delete rules read a command line as the commands it runs: quoted text is not a
+  command, each part of a `;`/`&&`/`||`/pipe chain is checked on its own, and so is the text given
+  to `bash -c`, `eval`, `$( )` and backquotes. See the
+  [Claude Code adapter](adapters/claude-code/README.md#how-guard_gitpy-reads-a-command).
 - Hooks also hold the workflow: a role is spawned only from artifacts that passed their gate, and a
   role that does not own a task file may change only its completion evidence.
 - `docs/agent/` holds project artifacts, not hidden agent memory.

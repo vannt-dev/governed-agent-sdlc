@@ -10,7 +10,9 @@ agentkit generate codex
 Generation is additive by default. Use `--dry-run` to preview paths and `--force` only after
 reviewing existing project-owned Codex configuration. The adapter does not modify user-level Codex
 trust, authentication, provider, model, telemetry, approval, or sandbox settings. Non-developer
-roles are read-only, and project-local hooks reinforce credential and destructive-git restrictions.
+roles are read-only, and project-local hooks reinforce credential, destructive-git and
+recursive-delete restrictions, reading a command line the way the
+[Claude Code guard](../claude-code/README.md#how-guard_gitpy-reads-a-command) does.
 Hooks are useful guardrails, not a complete security boundary.
 
 Official behavior references: <https://learn.chatgpt.com/docs/agent-configuration/agents-md> and
