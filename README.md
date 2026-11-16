@@ -68,18 +68,18 @@ agentkit doctor
 Upgrade an existing installation to this release:
 
 ```bash
-python -m pip install --upgrade governed-agent-sdlc==0.10.0
+python -m pip install --upgrade governed-agent-sdlc==0.11.0
 agentkit --version
 agentkit upgrade --dry-run
 agentkit upgrade
 agentkit doctor
 ```
 
-Version 0.10.0 makes `agentkit validate` enforce `[review].approval_mode = "github"`: in such a
-project every artifact approval must be GitHub-verified, so approvals made in local mode or recorded
-before 0.8.0 now fail until they are re-approved with `agentkit artifact transition ... approved
---approval-mode github`. Projects in the default `local` mode are not affected. Run `upgrade` after
-upgrading the package, as since 0.9.0, and commit `.agent/generated.json` with the files. See
+Version 0.11.0 makes the safety guards read a command line the way a shell runs it, so quoted
+text no longer trips them and commands hidden in a chain, `bash -c`, `eval`, `$( )` or backquotes
+are checked too. It also refuses a recursive delete (`rm -rf`, `rd /s`, `Remove-Item -Recurse`) of
+anything but a named path inside the workspace. Run `agentkit upgrade` after upgrading the package
+so the guards under `hooks/` are replaced, and commit them with `.agent/generated.json`. See
 [release notes](CHANGELOG.md) for the full changes.
 
 For local development:

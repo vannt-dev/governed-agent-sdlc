@@ -3,6 +3,27 @@
 All notable changes to Governed Agent SDLC are documented here. The project follows Semantic
 Versioning while its public interfaces remain alpha.
 
+## [0.11.0] - 2026-11-16
+
+### Upgrade notes
+
+- Run `agentkit upgrade` after upgrading the package to replace the guards under `hooks/`; the
+  Codex hook is part of the package and changes with it. Commands an agent ran before may now be
+  refused: a recursive delete of `/`, `~`, `$HOME`, `.`, `..`, `*`, `.git`, a path outside the
+  workspace or a target the guard cannot name, and destructive git commands passed through
+  `bash -c`, `sh -c`, `eval`, `$( )` or backquotes.
+
+### Added
+
+- The command guard refuses a recursive delete (`rm -rf`, `rd /s`, `Remove-Item -Recurse`) unless
+  every target is a named path inside the workspace.
+
+### Changed
+
+- The command guard reads a command line as a shell does: text inside quotes is no longer taken
+  for a command, each part of a `;`, `&&`, `||` or pipe chain is checked on its own, and so is the
+  text given to `bash -c`, `sh -c`, `eval`, `$( )` and backquotes.
+
 ## [0.10.0] - 2026-11-13
 
 ### Upgrade notes
@@ -240,6 +261,7 @@ Versioning while its public interfaces remain alpha.
   deterministic safety hooks, cross-platform CI, GitHub Pages site, GitHub Release automation, and
   PyPI Trusted Publishing.
 
+[0.11.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.7.0...v0.8.0
