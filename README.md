@@ -45,8 +45,12 @@ grant an AI permission to approve, merge, release, or retrieve credentials.
 - Six tool-neutral roles: architect, planner, developer, reviewer, QA, and publisher.
 - A structured artifact lifecycle with explicit approval evidence and supersession.
 - A TOML project manifest for repository layout, profiles, commands, and protected areas.
-- A dependency-free Python CLI: `init`, `generate`, `update-hooks`, `upgrade`, `validate`,
-  `doctor`, and artifact commands.
+- A dependency-free Python CLI: `init`, `generate`, `update-hooks`, `upgrade`, `migrate`,
+  `validate`, `doctor`, and artifact commands.
+- Governed review (`agentkit review evaluate|run|approve|status|recover|report|preview`): findings
+  from OpenCodeReview (`ocr`), a host CLI or a mock provider are judged against the manifest's
+  `[[policies]]`, with human approval records and append-only evidence under `.agent/runs/`
+  ([CLI reference](docs/cli.md#governed-review)).
 - Claude Code agent generation and safety hooks.
 - Native Codex project configuration and governed role generation.
 - OpenCode subagents with a guard plugin, and Antigravity agents with a guard hook
