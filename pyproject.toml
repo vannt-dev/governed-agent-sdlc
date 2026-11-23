@@ -34,9 +34,9 @@ dev = [
   "coverage==7.17.3",
   "hatchling==1.33.0",
   "mypy==2.4.1",
-  "playwright==1.65.1",
+  "playwright==1.65.2",
   "PyYAML==6.0.3",
-  "ruff==0.17.5",
+  "ruff==0.17.6",
   "twine==7.0.0",
 ]
 
