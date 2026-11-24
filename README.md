@@ -73,18 +73,19 @@ agentkit doctor
 Upgrade an existing installation to this release:
 
 ```bash
-python -m pip install --upgrade governed-agent-sdlc==0.12.0
+python -m pip install --upgrade governed-agent-sdlc==0.13.0
 agentkit --version
 agentkit upgrade --dry-run
 agentkit upgrade
 agentkit doctor
 ```
 
-Version 0.12.0 adds an adapter for the [Pi coding agent](https://github.com/earendil-works/pi):
-`agentkit generate pi` writes `.pi/extensions/governed-guards.js`, an extension that asks the
-credential and git guards before Pi runs a command or reads, lists or searches files. Pi loads it
-only once the project is trusted. Nothing changes for the other adapters; `agentkit upgrade` is
-still the step after upgrading the package. See [release notes](CHANGELOG.md) for the full changes.
+Version 0.13.0 adds an egress guard: a command that sends a local file or command output to a
+host (`curl -d @file`, `curl -T`, `scp`/`rsync` to a host, `Invoke-WebRequest -InFile`, `nc`) is
+refused unless the host is listed in `[egress] allowed_hosts`; plain requests and downloads pass.
+In Claude Code, a tool output that looks like it holds a secret also gets a warning to the agent.
+Run `agentkit upgrade` after upgrading the package so the new hooks are written, and commit them
+with `.agent/generated.json`. See [release notes](CHANGELOG.md) for the full changes.
 
 For local development:
 
