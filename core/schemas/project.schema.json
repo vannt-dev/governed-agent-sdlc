@@ -103,6 +103,17 @@
         "enabled": { "type": "boolean" },
         "max_attempts": { "type": "integer", "minimum": 1, "maximum": 10 }
       }
+    },
+    "egress": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allowed_hosts": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^(?:\\*\\.)?[A-Za-z0-9_.:-]+$" }
+        }
+      }
     }
   }
 }

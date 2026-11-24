@@ -42,7 +42,7 @@
       "agentkit": "0.8.0"
     },
     "hooks/guard_egress.py": {
-      "sha256": "c9d1556322c867c5b3159c28c1478ced80263ab8631e6f0fc96b33848f680e9a",
+      "sha256": "0cb1e449d68c7165b595553f5dc3c768bc5b97142ee01e5c9b25717c34540aec",
       "agentkit": "0.12.0"
     },
     "hooks/guard_git.py": {
@@ -58,7 +58,7 @@
       "agentkit": "0.8.0"
     },
     "hooks/scan_tool_output.py": {
-      "sha256": "8ff1fd3a8a1bced747c01ad741718eba07379e186a21937dfdfbc79faae6fa80",
+      "sha256": "f760228e5d0e4629a39a591e0fed8f20f5cd26053db5cacd8395862aa7288147",
       "agentkit": "0.12.0"
     }
   }

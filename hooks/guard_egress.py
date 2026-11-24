@@ -38,7 +38,6 @@ command table against both.
 from __future__ import annotations
 
 import re
-import tomllib
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -53,11 +52,12 @@ EGRESS_WORD = re.compile(
     r"invoke-restmethod|irm)(?![\w-])",
     re.I,
 )
-EGRESS_HINT = "add the host to [egress] allowed_hosts in the manifest if it is trusted"
+EGRESS_HINT = "if the host is trusted, ask the user to add it to [egress] allowed_hosts"
 MANIFEST_NAMES = ("agentkit.toml", ".agent/project.toml")
-# The options of each command that take a value, so a value is not read as a destination. An
-# option missing here is taken to have none: its value then counts as one more destination,
-# which can only refuse more, never less.
+# The options of each command that take a value, so a value is not read as a destination. For a
+# web request an option missing here is taken to have none: its value then counts as one more
+# destination, which can only refuse more. A copy is judged by its last word, so its tables must
+# also cover the options that may follow the destination.
 CURL_SHORT_VALUES = frozenset("AbcCdDeEFHKmoPQrtTuUwxXyYz")
 CURL_LONG_VALUES = frozenset(
     {
@@ -140,6 +140,8 @@ CURL_AT_FILE = frozenset(
     {"d", "data", "data-ascii", "data-binary", "json", "expand-data", "expand-data-binary"}
 )
 CURL_AT_FILE_NAMED = frozenset({"data-urlencode", "expand-data-urlencode", "variable"})
+# Every option whose value is sent as the body; one made of a command's output is refused.
+CURL_BODIES = CURL_AT_FILE | CURL_AT_FILE_NAMED | {"F", "form", "form-string", "data-raw"}
 WGET_SHORT_VALUES = frozenset("aAbBDeiIlOoPQRtTUwX")
 WGET_LONG_VALUES = frozenset(
     {
@@ -184,6 +186,38 @@ WGET_LONG_VALUES = frozenset(
 )
 SCP_SHORT_VALUES = frozenset("cDFiJloPSX")
 RSYNC_SHORT_VALUES = frozenset("BefMT")
+RSYNC_LONG_VALUES = frozenset(
+    {
+        "backup-dir",
+        "bwlimit",
+        "chmod",
+        "chown",
+        "compare-dest",
+        "copy-dest",
+        "exclude",
+        "exclude-from",
+        "files-from",
+        "filter",
+        "include",
+        "include-from",
+        "link-dest",
+        "log-file",
+        "log-file-format",
+        "max-size",
+        "min-size",
+        "out-format",
+        "partial-dir",
+        "password-file",
+        "port",
+        "rsh",
+        "rsync-path",
+        "suffix",
+        "temp-dir",
+        "timeout",
+        "usermap",
+        "groupmap",
+    }
+)
 NC_SHORT_VALUES = frozenset("cegGimIOpqsTwxX")
 POWERSHELL_WEB = frozenset({"invoke-webrequest", "iwr", "invoke-restmethod", "irm"})
 # Switches of Invoke-WebRequest and Invoke-RestMethod; every other parameter takes a value.
@@ -207,6 +241,10 @@ REMOTE_PATH = re.compile(r"^([^@/\\:]+@)?(\[[^\]/]+\]|[^@/\\:\[\]]+):(.?)")
 
 def allowed_hosts(root: Path) -> tuple[str, ...]:
     """The hosts `[egress] allowed_hosts` names in the project's manifest; none if unreadable."""
+    try:
+        import tomllib  # Python 3.11; an older interpreter allows no host
+    except ImportError:
+        return ()
     for name in MANIFEST_NAMES:
         path = root / name
         if not path.is_file():
@@ -319,13 +357,11 @@ def _curl(args: tuple[str, ...]) -> Outbound:
             sent.append(_file(value))
         elif name in CURL_AT_FILE and value.startswith("@"):
             sent.append(_file(value[1:]))
-        elif name in CURL_AT_FILE and UNKNOWN in value:
-            sent.append("command output")
         elif name in CURL_AT_FILE_NAMED and "@" in value.split("=", 1)[0]:
             sent.append(_file(value.split("@", 1)[1]))
         elif name in ("F", "form") and field_value.startswith(("@", "<")):
             sent.append(_file(field_value[1:].split(";", 1)[0]))
-        elif name in ("F", "form") and UNKNOWN in field_value:
+        elif name in CURL_BODIES and UNKNOWN in value:
             sent.append("command output")
         elif name in ("K", "config"):
             sent.append(f"what the config file {value} says")
@@ -367,8 +403,10 @@ def _powershell_web(args: tuple[str, ...]) -> Outbound:
 
 
 def _copy(name: str, args: tuple[str, ...]) -> Outbound:
-    short_values = SCP_SHORT_VALUES if name == "scp" else RSYNC_SHORT_VALUES
-    _, operands = _options(args, short_values, frozenset())
+    if name == "scp":
+        _, operands = _options(args, SCP_SHORT_VALUES, frozenset())
+    else:
+        _, operands = _options(args, RSYNC_SHORT_VALUES, RSYNC_LONG_VALUES)
     if len(operands) < 2:
         return None, []
     host = remote_host(operands[-1])

@@ -36,7 +36,9 @@ OWN_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(
             r"""(?:api[_-]?key|secret|token|password)["']?\s*[:=]\s*"""
-            r"""(?:["'][^\s"']{8,}["']|(?=[\w+/=.-]*\d)(?=[\w+/=.-]*[A-Za-z])[\w+/=.-]{12,})""",
+            # unquoted: letters and digits, not a call or an index such as `hashlib.sha256(`
+            r"""(?:["'][^\s"']{8,}["']|(?=[\w+/=.-]*\d)(?=[\w+/=.-]*[A-Za-z])"""
+            r"""[\w+/=.-]{12,}+(?![(\[]))""",
             re.IGNORECASE,
         ),
         "a key, secret, token or password value",
@@ -104,8 +106,9 @@ def answer(data: Any) -> dict[str, Any] | None:
 
 def main() -> int:
     try:
-        data = json.load(sys.stdin)
-    except (json.JSONDecodeError, OSError, UnicodeError):
+        # Claude Code writes UTF-8; Windows would otherwise read standard input in its code page
+        data = json.loads(sys.stdin.buffer.read().decode("utf-8", errors="replace"))
+    except (json.JSONDecodeError, OSError):
         return 0
     result = answer(data)
     if result:

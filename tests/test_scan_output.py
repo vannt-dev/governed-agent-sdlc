@@ -50,6 +50,9 @@ PLAIN_OUTPUTS = (
     "api_key=$value",
     "On branch main\nnothing to commit, working tree clean\n",
     "Authorization: Bearer $TOKEN",
+    "password = hashlib.sha256(raw).hexdigest()",
+    "token = base64.b64encode(data)",
+    "secret = secrets_by_name2[key]",
 )
 
 
