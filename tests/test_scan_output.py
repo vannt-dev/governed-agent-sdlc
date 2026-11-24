@@ -60,12 +60,12 @@ class SecretScanTests(unittest.TestCase):
     def test_secret_looking_output_is_named_by_kind(self) -> None:
         for text, kind in SECRET_OUTPUTS:
             with self.subTest(kind=kind):
-                self.assertIn(kind, scan.secret_kinds({"stdout": text, "stderr": ""}))
+                self.assertIn(kind, scan.matched_kinds({"stdout": text, "stderr": ""}))
 
     def test_ordinary_output_is_not_reported(self) -> None:
         for text in PLAIN_OUTPUTS:
             with self.subTest(text=text):
-                self.assertEqual([], scan.secret_kinds({"stdout": text}))
+                self.assertEqual([], scan.matched_kinds({"stdout": text}))
 
     def test_every_shape_of_response_is_read(self) -> None:
         shapes = (
@@ -76,7 +76,7 @@ class SecretScanTests(unittest.TestCase):
         )
         for response in shapes:
             with self.subTest(response=type(response).__name__):
-                self.assertEqual(["a GitHub token"], scan.secret_kinds(response))
+                self.assertEqual(["a GitHub token"], scan.matched_kinds(response))
 
     def test_the_warning_names_the_kind_and_never_the_secret(self) -> None:
         data = {

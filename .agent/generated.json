@@ -58,7 +58,7 @@
       "agentkit": "0.8.0"
     },
     "hooks/scan_tool_output.py": {
-      "sha256": "f760228e5d0e4629a39a591e0fed8f20f5cd26053db5cacd8395862aa7288147",
+      "sha256": "4cc5eb62f689d1c272eb062d2d263ff35e38967bfcdc71dd71d926b9bed06dd9",
       "agentkit": "0.12.0"
     }
   }

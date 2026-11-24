@@ -63,7 +63,7 @@ def texts(value: Any, depth: int = 0) -> Iterator[str]:
             yield from texts(item, depth + 1)
 
 
-def secret_kinds(response: Any) -> list[str]:
+def matched_kinds(response: Any) -> list[str]:
     """The kinds of secret the response appears to hold, in pattern order, each named once."""
     budget = SCAN_LIMIT
     found: list[str] = []
@@ -93,7 +93,7 @@ def answer(data: Any) -> dict[str, Any] | None:
     """The hook's answer to one PostToolUse call, or None when there is nothing to say."""
     if not isinstance(data, dict):
         return None
-    kinds = secret_kinds(data.get("tool_response"))
+    kinds = matched_kinds(data.get("tool_response"))
     if not kinds:
         return None
     return {
