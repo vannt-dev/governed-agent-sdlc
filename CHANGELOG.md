@@ -3,6 +3,32 @@
 All notable changes to Governed Agent SDLC are documented here. The project follows Semantic
 Versioning while its public interfaces remain alpha.
 
+## [0.13.0] - 2026-11-24
+
+### Upgrade notes
+
+- Run `agentkit upgrade` after upgrading the package to write `hooks/guard_egress.py`,
+  `hooks/scan_tool_output.py` and the new entries in `.claude/settings.json`; the Codex hook is
+  part of the package and changes with it. Commands an agent ran before may now be refused when
+  they send a local file or command output to a host not listed in `[egress] allowed_hosts`.
+
+### Added
+
+- An egress guard, `hooks/guard_egress.py`, for Claude Code, Codex, OpenCode, Antigravity and Pi.
+  It refuses a command that sends a local file or command output off the machine: `curl -d @file`,
+  `--data-binary @file`, `curl -F field=@file`, `curl -T`, a body read from standard input or made
+  of a command's output, `curl -K`, `wget --post-file`, `scp`/`rsync` to another host,
+  `Invoke-WebRequest`/`Invoke-RestMethod` with `-InFile`, and `nc` to a host. Plain requests,
+  downloads and `-d 'a=1'` style bodies pass. A destination the line does not name (`$URL`) is
+  refused. See
+  [what the egress guard refuses](adapters/claude-code/README.md#what-guard_egresspy-refuses).
+- `[egress] allowed_hosts` in the project manifest lists hosts such a command may send to; `*.`
+  matches every host below a name. An entry with a scheme, port or path is rejected.
+- In Claude Code, `hooks/scan_tool_output.py` runs after a command, a file read, a search, a web
+  fetch or an MCP tool. When the output looks like it holds a secret (a GitHub or cloud key, a
+  bearer token, a private key), it adds a note for the agent that names the kind of secret, never
+  the value, and asks it not to repeat, store or send it. The output is left as it is.
+
 ## [0.12.0] - 2026-11-24
 
 ### Added
@@ -276,6 +302,7 @@ Versioning while its public interfaces remain alpha.
   deterministic safety hooks, cross-platform CI, GitHub Pages site, GitHub Release automation, and
   PyPI Trusted Publishing.
 
+[0.13.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.9.0...v0.10.0
