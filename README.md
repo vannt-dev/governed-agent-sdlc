@@ -73,19 +73,18 @@ agentkit doctor
 Upgrade an existing installation to this release:
 
 ```bash
-python -m pip install --upgrade governed-agent-sdlc==0.11.0
+python -m pip install --upgrade governed-agent-sdlc==0.12.0
 agentkit --version
 agentkit upgrade --dry-run
 agentkit upgrade
 agentkit doctor
 ```
 
-Version 0.11.0 makes the safety guards read a command line the way a shell runs it, so quoted
-text no longer trips them and commands hidden in a chain, `bash -c`, `eval`, `$( )` or backquotes
-are checked too. It also refuses a recursive delete (`rm -rf`, `rd /s`, `Remove-Item -Recurse`) of
-anything but a named path inside the workspace. Run `agentkit upgrade` after upgrading the package
-so the guards under `hooks/` are replaced, and commit them with `.agent/generated.json`. See
-[release notes](CHANGELOG.md) for the full changes.
+Version 0.12.0 adds an adapter for the [Pi coding agent](https://github.com/earendil-works/pi):
+`agentkit generate pi` writes `.pi/extensions/governed-guards.js`, an extension that asks the
+credential and git guards before Pi runs a command or reads, lists or searches files. Pi loads it
+only once the project is trusted. Nothing changes for the other adapters; `agentkit upgrade` is
+still the step after upgrading the package. See [release notes](CHANGELOG.md) for the full changes.
 
 For local development:
 
