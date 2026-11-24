@@ -26,8 +26,12 @@
       "agentkit": "0.8.0"
     },
     ".claude/settings.json": {
-      "sha256": "4234c724a57bfaa3f2f3e26c138e873a2602686bbc99c239d1197ce94cbd7801",
-      "agentkit": "0.8.0"
+      "sha256": "a775a40ed77d0830dd5f0ac1c01aa23431f2e62af763539d1e6029245555d0d7",
+      "agentkit": "0.12.0"
+    },
+    "hooks/command_line.py": {
+      "sha256": "69d9a7fe698caa3e0f68171fb8bfd53be7aaaa5d922ab1da9371a5781fc36993",
+      "agentkit": "0.12.0"
     },
     "hooks/common.py": {
       "sha256": "cc5374378f85a56380735d7510d917a178794d89397d865641cdd39228a64bea",
@@ -37,9 +41,13 @@
       "sha256": "9a0661a145b1835a5119598c22a16f1c1d365f5f1a926122e03ada759d7adfdf",
       "agentkit": "0.8.0"
     },
+    "hooks/guard_egress.py": {
+      "sha256": "c9d1556322c867c5b3159c28c1478ced80263ab8631e6f0fc96b33848f680e9a",
+      "agentkit": "0.12.0"
+    },
     "hooks/guard_git.py": {
-      "sha256": "e81689874685d510fed42ea75952ae0ff0c2111f71aecd4e1a1ef3a399af35cb",
-      "agentkit": "0.8.0"
+      "sha256": "3c330d38dc1571f69669591d0df0353465902f7956d38d36c08ef9cf7cd2e4e2",
+      "agentkit": "0.12.0"
     },
     "hooks/guard_role_gate.py": {
       "sha256": "2b56b371bca1feb2eda0356b45d6f3e4f77b0c106c888b33c56ba087ebf6b844",
@@ -48,6 +56,10 @@
     "hooks/guard_role_scope.py": {
       "sha256": "b90db9c1c18f52a52a5ddbef8c0876d1be85ad2bb0d3b41146c73a5ea71583ee",
       "agentkit": "0.8.0"
+    },
+    "hooks/scan_tool_output.py": {
+      "sha256": "8ff1fd3a8a1bced747c01ad741718eba07379e186a21937dfdfbc79faae6fa80",
+      "agentkit": "0.12.0"
     }
   }
 }

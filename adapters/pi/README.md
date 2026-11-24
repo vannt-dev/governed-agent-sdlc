@@ -27,7 +27,7 @@ with `uv run --no-project python`:
 
 | Pi tool | Guards asked |
 | --- | --- |
-| `bash`, `powershell` | `hooks/guard_credentials.py`, `hooks/guard_git.py` |
+| `bash`, `powershell` | `hooks/guard_credentials.py`, `hooks/guard_git.py`, `hooks/guard_egress.py` |
 | `read`, `ls`, `find`, `grep` | `hooks/guard_credentials.py` |
 
 The guard sees the command or path as Pi will use it: a leading `@` is dropped, as Pi drops it,

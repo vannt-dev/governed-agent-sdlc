@@ -27,7 +27,7 @@ translates the call into the input the guards in `hooks/` read:
 
 | Antigravity tool | Guards asked |
 | --- | --- |
-| `run_command` (its `CommandLine`) | `hooks/guard_credentials.py`, `hooks/guard_git.py` |
+| `run_command` (its `CommandLine`) | `hooks/guard_credentials.py`, `hooks/guard_git.py`, `hooks/guard_egress.py` |
 | the file tools (their paths and file patterns) | `hooks/guard_credentials.py` |
 
 For the file tools the hook goes by what an argument looks like, not by its name: an argument

@@ -22,7 +22,7 @@ import { fileURLToPath } from "node:url";
 // so it works when Pi is started in a subfolder.
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
-const COMMAND_GUARDS = ["guard_credentials.py", "guard_git.py"];
+const COMMAND_GUARDS = ["guard_credentials.py", "guard_git.py", "guard_egress.py"];
 const PATH_GUARDS = ["guard_credentials.py"];
 
 // The session's folder as the guards resolve their own place (`/var` is `/private/var` on macOS,

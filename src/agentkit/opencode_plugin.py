@@ -22,7 +22,7 @@ import { fileURLToPath } from "node:url";
 // OpenCode's `worktree` is `/` outside a git repository, and its `directory` may be a subfolder.
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
-const COMMAND_GUARDS = ["guard_credentials.py", "guard_git.py"];
+const COMMAND_GUARDS = ["guard_credentials.py", "guard_git.py", "guard_egress.py"];
 const PATH_GUARDS = ["guard_credentials.py"];
 
 // OpenCode's tool, as the name and the arguments the guards read.

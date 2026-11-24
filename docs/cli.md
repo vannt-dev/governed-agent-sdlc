@@ -119,6 +119,9 @@ approval_mode = "local"        # or "github": verify review and artifact approva
 enabled = true
 max_attempts = 2                # after this many attempts require-remediation becomes block
 
+[egress]                        # hosts commands may send local files or output to
+allowed_hosts = ["uploads.example.com", "*.internal.example.com"]  # `*.` = every host below
+
 [[policies]]                    # replaces the built-in defaults when present
 id = "auth-block"
 action = "block"                # continue | warn | block | require-human-approval | require-remediation

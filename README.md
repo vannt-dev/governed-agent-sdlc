@@ -209,6 +209,14 @@ are restricted to Markdown files below the active project's `docs/agent/` direct
   command, each part of a `;`/`&&`/`||`/pipe chain is checked on its own, and so is the text given
   to `bash -c`, `eval`, `$( )` and backquotes. See the
   [Claude Code adapter](adapters/claude-code/README.md#how-guard_gitpy-reads-a-command).
+- Commands that send local files or command output off the machine are refused unless every
+  destination is listed in `[egress] allowed_hosts`: `curl -d @file`, `curl -T`, `curl -F x=@file`,
+  `wget --post-file`, `scp`/`rsync` to another host, `Invoke-WebRequest -InFile`, and `nc`. Plain
+  requests and downloads pass. See
+  [what the egress guard refuses](adapters/claude-code/README.md#what-guard_egresspy-refuses).
+- In Claude Code, a tool's output that looks like it holds a secret (a GitHub or cloud key, a
+  bearer token, a private key) gets a warning next to it telling the agent not to repeat, store or
+  send the value. The output itself is left as it is.
 - Hooks also hold the workflow: a role is spawned only from artifacts that passed their gate, and a
   role that does not own a task file may change only its completion evidence.
 - `docs/agent/` holds project artifacts, not hidden agent memory.
