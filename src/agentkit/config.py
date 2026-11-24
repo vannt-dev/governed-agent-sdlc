@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import ipaddress
 import os
+import re
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -20,7 +22,10 @@ MANIFEST_FIELDS = {
     "review",
     "policies",
     "remediation",
+    "egress",
 }
+# A host name, or `*.` and a name for every host below it; an IP address is taken as well.
+EGRESS_HOST = re.compile(r"^(?:\*\.)?[a-z0-9_-]+(?:\.[a-z0-9_-]+)*$", re.IGNORECASE)
 REVIEW_PROVIDERS = ("mock", "open-code-review", "cli")
 REVIEW_DEFAULTS: dict[str, Any] = {
     "provider": "mock",
@@ -57,6 +62,31 @@ class ProjectConfig:
     review: dict[str, Any] = field(default_factory=lambda: dict(REVIEW_DEFAULTS))
     policies: tuple[dict[str, Any], ...] = ()
     remediation: dict[str, Any] = field(default_factory=lambda: dict(REMEDIATION_DEFAULTS))
+    # Hosts `hooks/guard_egress.py` lets a command send local files or output to.
+    egress_allowed_hosts: tuple[str, ...] = ()
+
+
+def _ip_address(text: str) -> bool:
+    try:
+        ipaddress.ip_address(text)
+    except ValueError:
+        return False
+    return True
+
+
+def _load_egress(raw: dict[str, Any]) -> tuple[str, ...]:
+    egress = raw.get("egress", {})
+    if not isinstance(egress, dict):
+        raise ConfigError("[egress] must be a table")
+    _reject_unknown_fields(egress, {"allowed_hosts"}, "[egress]")
+    hosts = _string_list(egress.get("allowed_hosts", []), "[egress].allowed_hosts")
+    for host in hosts:
+        if not EGRESS_HOST.match(host) and not _ip_address(host):
+            raise ConfigError(
+                f"[egress].allowed_hosts entry {host!r} must be a host name such as "
+                "uploads.example.com or *.example.com, without a scheme, port or path"
+            )
+    return hosts
 
 
 def _load_review_settings(
@@ -264,6 +294,7 @@ def load_config(root: Path | None = None) -> ProjectConfig:
         review=review,
         policies=policies,
         remediation=remediation,
+        egress_allowed_hosts=_load_egress(raw),
     )
 
 

@@ -25,7 +25,7 @@ them with `uv run --no-project python`:
 
 | OpenCode tool | Guards asked |
 | --- | --- |
-| `bash` | `hooks/guard_credentials.py`, `hooks/guard_git.py` |
+| `bash` | `hooks/guard_credentials.py`, `hooks/guard_git.py`, `hooks/guard_egress.py` |
 | `read`, `list`, `glob`, `grep` | `hooks/guard_credentials.py` |
 
 A guard that objects refuses the call with its reason. So does a guard that is missing or that

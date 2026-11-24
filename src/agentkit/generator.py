@@ -32,14 +32,18 @@ ROLE_DESCRIPTIONS = {
     "publisher": "Publish only after review, QA, and human approval.",
 }
 
-# Tool matcher -> guard script under hooks/. PowerShell is the shell tool on Windows; MultiEdit and
-# Task are the names older Claude Code versions use for multi-part edits and subagent spawns.
+# Tool matcher -> guard scripts under hooks/. PowerShell is the shell tool on Windows; MultiEdit
+# and Task are the names older Claude Code versions use for multi-part edits and subagent spawns.
 CLAUDE_GUARDS = (
-    ("Bash|PowerShell|Read|Glob|Grep", "guard_credentials.py"),
-    ("Bash|PowerShell", "guard_git.py"),
-    ("Write|Edit|MultiEdit", "guard_role_scope.py"),
-    ("Agent|Task", "guard_role_gate.py"),
+    ("Bash|PowerShell|Read|Glob|Grep", ("guard_credentials.py",)),
+    ("Bash|PowerShell", ("guard_git.py", "guard_egress.py")),
+    ("Write|Edit|MultiEdit", ("guard_role_scope.py",)),
+    ("Agent|Task", ("guard_role_gate.py",)),
 )
+# Tool matcher -> scripts that read a tool's output once it has run. A matcher with a character
+# other than letters, digits, `_` and `|` is a regular expression to Claude Code: `mcp__.*` is
+# every MCP tool.
+CLAUDE_OUTPUT_HOOKS = (("Bash|PowerShell|Read|Grep|WebFetch|mcp__.*", ("scan_tool_output.py",)),)
 
 AGENT_INSTRUCTIONS = """# Agent Instructions
 
@@ -83,22 +87,27 @@ Read `AGENTS.md`, then read whichever of `agentkit.toml` or `.agent/project.toml
 Stay within the role's declared authority and produce the required artifact evidence.
 """
 
+    def entries(hooks: tuple[tuple[str, tuple[str, ...]], ...]) -> list[dict[str, object]]:
+        return [
+            {
+                "matcher": matcher,
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": f"uv run --no-project python hooks/{script}",
+                        "timeout": 10,
+                    }
+                    for script in scripts
+                ],
+            }
+            for matcher, scripts in hooks
+        ]
+
     settings = {
         "permissions": {"deny": ["Read(**/.env)", "Read(**/.env.*)", "Read(**/*credential*)"]},
         "hooks": {
-            "PreToolUse": [
-                {
-                    "matcher": matcher,
-                    "hooks": [
-                        {
-                            "type": "command",
-                            "command": f"uv run --no-project python hooks/{script}",
-                            "timeout": 10,
-                        }
-                    ],
-                }
-                for matcher, script in CLAUDE_GUARDS
-            ]
+            "PreToolUse": entries(CLAUDE_GUARDS),
+            "PostToolUse": entries(CLAUDE_OUTPUT_HOOKS),
         },
     }
     planned[".claude/settings.json"] = json.dumps(settings, indent=2) + "\n"

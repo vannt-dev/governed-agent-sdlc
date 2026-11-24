@@ -19,11 +19,11 @@ from typing import Any
 
 # `.agents/hooks/governed_guard.py` is two folders below the project root.
 ROOT = Path(__file__).resolve().parents[2]
-COMMAND_GUARDS = ("guard_credentials.py", "guard_git.py")
+COMMAND_GUARDS = ("guard_credentials.py", "guard_git.py", "guard_egress.py")
 PATH_GUARDS = ("guard_credentials.py",)
 # What Antigravity adds to every call to describe it to the user; text, not a target.
 LABELS = frozenset({"toolAction", "toolSummary"})
-GUARD_TIMEOUT_SECONDS = 8
+GUARD_TIMEOUT_SECONDS = 6
 # For the whole decision. `.agents/hooks.json` allows the hook more than this, so a slow guard
 # is answered with a refusal here rather than left to whatever a cut-off hook means there.
 BUDGET_SECONDS = 20

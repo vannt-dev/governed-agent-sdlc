@@ -92,14 +92,29 @@ class GeneratorTests(unittest.TestCase):
             root = Path(temp)
             generate_claude(root)
             settings = json.loads((root / ".claude" / "settings.json").read_text(encoding="utf-8"))
-            commands = {
-                entry["matcher"]: entry["hooks"][0]["command"]
-                for entry in settings["hooks"]["PreToolUse"]
-            }
-            self.assertIn("guard_credentials.py", commands["Bash|PowerShell|Read|Glob|Grep"])
-            self.assertIn("guard_git.py", commands["Bash|PowerShell"])
-            self.assertIn("guard_role_scope.py", commands["Write|Edit|MultiEdit"])
-            self.assertIn("guard_role_gate.py", commands["Agent|Task"])
+
+            def commands(event: str) -> dict[str, str]:
+                return {
+                    entry["matcher"]: " ".join(hook["command"] for hook in entry["hooks"])
+                    for entry in settings["hooks"][event]
+                }
+
+            before = commands("PreToolUse")
+            self.assertIn("guard_credentials.py", before["Bash|PowerShell|Read|Glob|Grep"])
+            self.assertIn("guard_git.py", before["Bash|PowerShell"])
+            self.assertIn("guard_egress.py", before["Bash|PowerShell"])
+            self.assertIn("guard_role_scope.py", before["Write|Edit|MultiEdit"])
+            self.assertIn("guard_role_gate.py", before["Agent|Task"])
+            (output_matcher,) = commands("PostToolUse")
+            for tool in ("Bash", "PowerShell", "Read", "Grep", "WebFetch", "mcp__.*"):
+                self.assertIn(tool, output_matcher.split("|"))
+            self.assertIn("scan_tool_output.py", commands("PostToolUse")[output_matcher])
+            # every script the settings name is one the package ships
+            shipped = {path.name for path in (Path(__file__).parents[1] / "hooks").glob("*.py")}
+            for event in ("PreToolUse", "PostToolUse"):
+                for entry in settings["hooks"][event]:
+                    for hook in entry["hooks"]:
+                        self.assertIn(hook["command"].split("hooks/")[-1], shipped)
 
     def test_committed_claude_settings_match_the_generator(self) -> None:
         repository = Path(__file__).resolve().parents[1]
