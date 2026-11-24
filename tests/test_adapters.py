@@ -13,7 +13,12 @@ from unittest import mock
 
 from agentkit import antigravity_hook
 from agentkit.cli import main
-from agentkit.generator import generate_antigravity, generate_opencode, install_scaffold
+from agentkit.generator import (
+    generate_antigravity,
+    generate_opencode,
+    generate_pi,
+    install_scaffold,
+)
 
 ROLES = ("architect", "planner", "developer", "reviewer", "qa", "publisher")
 
@@ -150,6 +155,109 @@ console.log(JSON.stringify(outcome));
             )
             missing = json.loads(again.stdout.strip().splitlines()[-1])
             self.assertIn("guard", missing["status"])
+            self.assertIsNone(missing["edit"])
+
+
+class PiAdapterTests(unittest.TestCase):
+    def test_writes_one_extension_where_pi_looks_for_project_extensions(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            extension = root / ".pi" / "extensions" / "governed-guards.js"
+            self.assertEqual([extension], generate_pi(root, dry_run=True))
+            self.assertFalse((root / ".pi").exists())
+            self.assertEqual([extension], generate_pi(root))
+            text = extension.read_text("utf-8")
+            self.assertIn('pi.on("tool_call"', text)
+            self.assertIn("block: true", text)
+            self.assertIn("guard_credentials.py", text)
+            self.assertIn("guard_git.py", text)
+            # no path of the machine that generated it
+            self.assertNotIn(str(root), text)
+            self.assertEqual([], generate_pi(root))
+            self.assertEqual([extension], generate_pi(root, force=True))
+
+    @unittest.skipUnless(shutil.which("node") and shutil.which("uv"), "needs node and uv")
+    def test_the_extension_run_by_node_lets_the_guards_decide(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "project"
+            install_scaffold(root, name="fixture")
+            generate_pi(root)
+            extension = (root / ".pi" / "extensions" / "governed-guards.js").as_uri()
+            driver = Path(temp) / "driver.mjs"
+            driver.write_text(
+                f"""
+import register from {json.dumps(extension)};
+// what Pi passes: an API to register handlers on, and a context with the session's folder
+const handlers = {{}};
+register({{ on: (name, handler) => {{ handlers[name] = handler; }} }});
+const cwd = process.argv[2] ?? {json.dumps(str(root))};
+const cases = {{
+  forcePush: ["bash", {{ command: "git push --force origin main" }}],
+  readEnvByCommand: ["bash", {{ command: "cat .env" }}],
+  status: ["bash", {{ command: "git status" }}],
+  quotedPush: ["bash", {{ command: "echo 'git push --force origin main'" }}],
+  deleteParent: ["bash", {{ command: "rm -rf .." }}],
+  deleteBuild: ["bash", {{ command: "rm -rf build" }}],
+  deleteSibling: ["bash", {{ command: "rm -rf ../hooks" }}],
+  powershellDelete: ["powershell", {{ command: "Remove-Item -Recurse -Force .." }}],
+  readEnv: ["read", {{ path: ".env" }}],
+  readEnvAt: ["read", {{ path: "@.env" }}],
+  readNetrc: ["read", {{ path: "~/.netrc" }}],
+  readReadme: ["read", {{ path: "README.md" }}],
+  lsSecrets: ["ls", {{ path: "secrets" }}],
+  findEnv: ["find", {{ pattern: "**/.env" }}],
+  grepText: ["grep", {{ pattern: "secrets", path: "src" }}],
+  grepEnv: ["grep", {{ pattern: "KEY", glob: "**/.env" }}],
+  edit: ["edit", {{ path: "src/app.py" }}],
+}};
+const outcome = {{}};
+for (const [name, [toolName, input]] of Object.entries(cases)) {{
+  const answer = await handlers.tool_call({{ toolName, input }}, {{ cwd }});
+  outcome[name] = answer?.block ? answer.reason : null;
+}}
+console.log(JSON.stringify(outcome));
+""",
+                encoding="utf-8",
+            )
+
+            def run(*arguments: str) -> dict[str, str | None]:
+                result = subprocess.run(
+                    ["node", str(driver), *arguments],
+                    capture_output=True,
+                    text=True,
+                    timeout=300,
+                    check=False,
+                )
+                self.assertEqual(0, result.returncode, result.stderr)
+                outcome: dict[str, str | None] = json.loads(result.stdout.strip().splitlines()[-1])
+                return outcome
+
+            outcome = run()
+            self.assertIn("force push is forbidden", outcome["forcePush"] or "")
+            self.assertIn("credential material", outcome["readEnvByCommand"] or "")
+            self.assertIn("recursive delete of .. refused", outcome["deleteParent"] or "")
+            self.assertIn("recursive delete of .. refused", outcome["powershellDelete"] or "")
+            self.assertIn("outside the workspace", outcome["deleteSibling"] or "")
+            for name in ("readEnv", "readEnvAt", "readNetrc", "lsSecrets", "findEnv", "grepEnv"):
+                with self.subTest(name=name):
+                    self.assertIn("credential material", outcome[name] or "")
+            for name in ("status", "quotedPush", "deleteBuild", "readReadme", "grepText"):
+                with self.subTest(name=name):
+                    self.assertIsNone(outcome[name])
+            # writing files is not a guard's decision here
+            self.assertIsNone(outcome["edit"])
+
+            # Pi started in a subfolder: the extension still finds the guards by its own place,
+            # and a delete is judged from the folder the session runs in
+            inside = run(str(root / "core"))
+            self.assertIn("force push is forbidden", inside["forcePush"] or "")
+            self.assertIsNone(inside["deleteSibling"])
+            self.assertIn("the workspace itself", inside["deleteParent"] or "")
+
+            # the guards gone: a call that would have been checked is refused, not waved through
+            shutil.rmtree(root / "hooks")
+            missing = run()
+            self.assertIn("agentkit update-hooks", missing["status"] or "")
             self.assertIsNone(missing["edit"])
 
 
@@ -384,6 +492,7 @@ class AdapterCommandTests(unittest.TestCase):
             for adapter, marker in (
                 ("opencode", ".opencode/agents/reviewer.md"),
                 ("antigravity", ".agents/agents/reviewer/agent.md"),
+                ("pi", ".pi/extensions/governed-guards.js"),
             ):
                 with self.subTest(adapter=adapter):
                     project = Path(temp) / f"init-{adapter}"
@@ -407,7 +516,8 @@ class AdapterCommandTests(unittest.TestCase):
             manifest = project / ".agent" / "project.toml"
             manifest.write_text(
                 manifest.read_text(encoding="utf-8").replace(
-                    'profiles = ["generic"]', 'profiles = ["generic", "opencode", "antigravity"]'
+                    'profiles = ["generic"]',
+                    'profiles = ["generic", "opencode", "antigravity", "pi"]',
                 ),
                 encoding="utf-8",
             )

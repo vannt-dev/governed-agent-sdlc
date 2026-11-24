@@ -9,6 +9,7 @@ from pathlib import Path
 
 from agentkit import __version__
 from agentkit.opencode_plugin import PLUGIN_SOURCE as OPENCODE_PLUGIN_SOURCE
+from agentkit.pi_extension import EXTENSION_SOURCE as PI_EXTENSION_SOURCE
 
 # Where a project keeps the hash of each file `agentkit` wrote, to tell an edit from older output.
 GENERATED_RECORD = Path(".agent") / "generated.json"
@@ -219,6 +220,21 @@ def plan_opencode() -> dict[str, str]:
     return planned
 
 
+def generate_pi(root: Path, *, force: bool = False, dry_run: bool = False) -> list[Path]:
+    """Generate additive project-scoped Pi configuration.
+
+    Pi reads the repository's AGENTS.md by itself and has no roles of its own. The adapter adds an
+    extension under `.pi/extensions/` that asks the project's guards before a command runs or a
+    file is read; Pi loads it once the project is trusted.
+    """
+    return _generate(root, plan_pi(), force=force, dry_run=dry_run)
+
+
+def plan_pi() -> dict[str, str]:
+    """The Pi files this version writes, by path relative to the project."""
+    return {".pi/extensions/governed-guards.js": PI_EXTENSION_SOURCE}
+
+
 # The tools of Antigravity that run a command or reach a file; the hook is asked before each.
 ANTIGRAVITY_GUARDED_TOOLS = ("run_command", "view_file", "find_by_name", "grep_search")
 
@@ -282,6 +298,7 @@ ADAPTER_PLANS = {
     "codex": plan_codex,
     "opencode": plan_opencode,
     "antigravity": plan_antigravity,
+    "pi": plan_pi,
 }
 
 

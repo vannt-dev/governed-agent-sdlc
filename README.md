@@ -15,8 +15,8 @@
 
 </div>
 
-Governed Agent SDLC keeps one workflow policy for four AI coding agents: Claude Code, Codex,
-OpenCode and Antigravity. The roles, artifact lifecycle, approval rules and protected areas live in
+Governed Agent SDLC keeps one workflow policy for five AI coding agents: Claude Code, Codex,
+OpenCode, Antigravity and the [Pi coding agent](https://github.com/earendil-works/pi). The roles, artifact lifecycle, approval rules and protected areas live in
 a tool-neutral core and one project manifest, and `agentkit generate` turns them into each agent's
 own configuration; none of them keeps a parallel policy file. Stack profiles supply each stack's
 commands and exclusions. [Maturity](#maturity) says which guards each agent enforces.
@@ -36,7 +36,7 @@ In the default local mode an approval is recorded as given and marked `unverifie
 The project is intentionally **human-in-the-loop**. It helps agents work predictably; it does not
 grant an AI permission to approve, merge, release, or retrieve credentials.
 
-> **Alpha status:** the core workflow, the Claude Code, Codex, OpenCode and Antigravity adapters,
+> **Alpha status:** the core workflow, the Claude Code, Codex, OpenCode, Antigravity and Pi adapters,
 > deterministic safety hooks, cross-platform validation, and PyPI Trusted Publishing are available.
 > Interfaces may still evolve before 1.0.
 
@@ -53,8 +53,9 @@ grant an AI permission to approve, merge, release, or retrieve credentials.
   ([CLI reference](docs/cli.md#governed-review)).
 - Claude Code agent generation and safety hooks.
 - Native Codex project configuration and governed role generation.
-- OpenCode subagents with a guard plugin, and Antigravity agents with a guard hook
-  ([OpenCode adapter](adapters/opencode/README.md), [Antigravity adapter](adapters/antigravity/README.md)).
+- OpenCode subagents with a guard plugin, Antigravity agents with a guard hook, and a guard
+  extension for Pi ([OpenCode adapter](adapters/opencode/README.md),
+  [Antigravity adapter](adapters/antigravity/README.md), [Pi adapter](adapters/pi/README.md)).
 - Stack profiles for generic repositories, Python, .NET, Nuxt, Node.js and TypeScript, Java
   (Spring Boot on Maven), Flutter, Go, Rust, Kotlin (Gradle), and PHP (Composer).
 - Cross-platform tests and reusable GitHub Actions.
@@ -218,9 +219,9 @@ See [Architecture](docs/architecture.md), [Workflow](docs/workflow.md), and
 
 ## Maturity
 
-The project is an alpha. Claude Code, Codex, OpenCode and Antigravity consume the same core
+The project is an alpha. Claude Code, Codex, OpenCode, Antigravity and Pi consume the same core
 contracts rather than introducing parallel policy files. The credential and git guards hold on
-all four; the role write scope and the role gate are enforced on Claude Code only, because only
+all five (on Pi once the project is trusted); the role write scope and the role gate are enforced on Claude Code only, because only
 its hook input says which role is acting.
 
 See [CHANGELOG.md](CHANGELOG.md) for release history and upgrade notes.
