@@ -3,6 +3,21 @@
 All notable changes to Governed Agent SDLC are documented here. The project follows Semantic
 Versioning while its public interfaces remain alpha.
 
+## [0.12.0] - 2026-11-24
+
+### Added
+
+- A Pi coding agent adapter: `agentkit init --adapter pi` and `agentkit generate pi` write
+  `.pi/extensions/governed-guards.js`, an extension that asks `hooks/guard_credentials.py` and
+  `hooks/guard_git.py` before Pi runs a `bash` or `powershell` command, and the credential guard
+  before it reads, lists or searches files (`read`, `ls`, `find`, `grep`). A guard that objects,
+  is missing or fails blocks the call. Pi loads the extension only once the project is trusted;
+  see the [Pi adapter](adapters/pi/README.md).
+
+### Changed
+
+- The README and the site list `agentkit migrate` and the review commands.
+
 ## [0.11.0] - 2026-11-16
 
 ### Upgrade notes
@@ -261,6 +276,7 @@ Versioning while its public interfaces remain alpha.
   deterministic safety hooks, cross-platform CI, GitHub Pages site, GitHub Release automation, and
   PyPI Trusted Publishing.
 
+[0.12.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/vannt-dev/governed-agent-sdlc/compare/v0.8.0...v0.9.0
