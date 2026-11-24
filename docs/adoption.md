@@ -10,6 +10,7 @@
    - Codex: `agentkit generate codex`
    - OpenCode: `agentkit generate opencode`
    - Antigravity: `agentkit generate antigravity`
+   - [Pi coding agent](https://github.com/earendil-works/pi): `agentkit generate pi` (Pi loads it once the project is trusted)
 5. Run `agentkit doctor` on Windows, Linux, and macOS used by the team.
 6. Add the reusable validation workflow to required GitHub checks. Pin its `uses:` line to a
    release tag or commit; the toolkit it runs is that same revision unless `toolkit-ref` names

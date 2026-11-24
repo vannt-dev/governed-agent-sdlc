@@ -31,6 +31,7 @@ from agentkit.generator import (
     generate_claude,
     generate_codex,
     generate_opencode,
+    generate_pi,
     install_scaffold,
     shipped_profiles,
     update_hooks,
@@ -45,6 +46,7 @@ ADAPTERS = {
     "codex": generate_codex,
     "opencode": generate_opencode,
     "antigravity": generate_antigravity,
+    "pi": generate_pi,
 }
 
 
